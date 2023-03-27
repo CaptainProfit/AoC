@@ -1,11 +1,17 @@
 //[UTF-8 en/ru]
 //problem - https://adventofcode.com/2022/day/7
+//second part change - need to delete the least dir to install update
+//2147483647 - LONG_MAX
+//18446744073709551615 - ULLONG_MAX
+#define MEMSIZE 70000000
+#define UPD_SIZE 30000000
 #include <iostream> 
 #include <fstream>
 #include <vector>
 #include <string>
 #include <sstream>
 #include <list>
+#include <algorithm>
 using namespace std;
 #define ull unsigned long long
 
@@ -80,24 +86,51 @@ int readFileToSMt(){
 
 ull counter = 0;
 ull limit = 100000;
-ull round(cNode* rt){
+ull round1(cNode* rt){
 	ull cnt = 0;
 	for(list<cNode>::iterator it = rt->childs.begin(); it != rt->childs.end(); it++)
-		cnt+=round(&(*it));
+		cnt+=round1(&(*it));
 	rt->size+=cnt;
-	if(rt->size <= limit)
-		counter+=rt->size;
+
 	return rt->size;
+}
+
+vector<cNode*> possibles;
+void round2(cNode* rt){
+	for(list<cNode>::iterator it = rt->childs.begin(); it != rt->childs.end(); it++)
+		round2(&(*it));
+
+	if(rt->size > limit){
+		possibles.emplace_back();
+		possibles.back() = rt;
+	}
 }
 
 int main(void){
 	readFileToSMt();
 	//now come from tree
-	round(&root);
-	cout<<"there are "<<counter<<" total size of ..."<<endl;
+	round1(&root);
+	root.size;
+	limit = root.size + UPD_SIZE - MEMSIZE;
+	round2(&root);
+	sort(possibles.begin(), possibles.end(), 	
+		[](const cNode* s1, const cNode* s2)
+		{		return s1->size < s2->size;	});
+
+	//find first dir more than
+	//int l = 0, r = possibles.size()-1;
+	int mid = 0;
+	// while(l<r){
+	// 	mid = (l + r)/2;
+	// 	if((possibles[mid]->size) <= limit )
+	// 		l = mid;
+	// 	else
+	// 		r = mid - 1;
+	// }	
+	
+	cout<<"there are \""<<(possibles[mid]->name)<<"\" directory with "<< (possibles[mid]->size) <<" total size"<<endl;
 	return 0;
-	//203011970 - wrong
-	//1447046 correct
+	//578710 correct
 	//2147483647 - LONG_MAX
 	//18446744073709551615 - ULLONG_MAX
 }
