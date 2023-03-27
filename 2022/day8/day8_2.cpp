@@ -34,34 +34,32 @@ int readFileToSMt(){
 }
 
 ull solve(int si, int sj){
-	if(si == 0 || sj == 0 || si == table.size()-1 || sj ==table[0].size() - 1)
-		return 0;
 	int width = table[0].size();
 	int height = table.size();
-	long long lc = 1, rc = 1, uc = 1, dc = 1;
+	long long lc = 0, rc = 0, uc = 0, dc = 0;
 	//check visibles from left/right	
 	for(int i = si+1; i < height; i++){
-		if(table[si][sj] > table[i][sj])
-			rc++;
-		else break;
+		rc++;
+		if(table[si][sj] <= table[i][sj])
+			break;
 	}
 	
 	for(int i = si-1; i >= 0; i--){
-		if(table[si][sj] > table[i][sj])
-			lc++;
-		else break;
+		lc++;
+		if(table[si][sj] <= table[i][sj])
+			break;
 	}
 	
 	//check visibles from top/bottom	
 	for(int j = sj + 1; j < width; j++){
-		if(table[si][sj] > table[si][j])
-			uc++;
-		else break;
+		uc++;
+		if(table[si][sj] <= table[si][j])
+			break;
 	}
 	for(int j = sj - 1; j >= 0; j--){
-		if(table[si][sj] > table[si][j])
-			dc++;
-		else break;
+		dc++;
+		if(table[si][sj] <= table[si][j])
+			break;
 	}
 
 	return lc*rc*uc*dc;
@@ -85,5 +83,6 @@ int main(void){
 	//4662000 too high
 	//2331000 too high hehehe okay, stop it.
 	//419328 not the right answer	
+	//383520 correct
 	return 0;
 }
