@@ -1,5 +1,5 @@
 //[UTF-8 en/ru]
-//problem - https://adventofcode.com/2022/day/8
+//problem - https://adventofcode.com/2022/day/x
 //2147483647 - LONG_MAX
 //18446744073709551615 - ULLONG_MAX
 #include <iostream> 
@@ -31,7 +31,6 @@ void solve(){
 int main(void){
 	readFileToSMt();
 	solve();
-	//now come from tree
 	cout<<"there are "<<result<<" visible trees"<<endl;
 	//1816 correct
 	return 0;
