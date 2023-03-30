@@ -7,187 +7,164 @@
 #include <sstream>
 #include <vector>
 #include <string>
-#include <list>
+#include <algorithm>
 #define ull unsigned long long
 
 using namespace std;
 class cMonkey{
-	int id;
-	int div;
+	int id = -1;
+	int div = -1;
 	char op;
-	int arg;
+	int arg = -1;
+	int counter = -1;
 	vector<int> items;
 
 	public:	
-	int idYes;
-	int idNo;
+	int idYes = -1;	
+	int idNo = -1;
+	cMonkey(string lines[]){
+		string trash;
+		stringstream(lines[0])>>trash>> id;
+		stringstream(lines[3].substr(
+					 lines[3].find(':') + 1))>>trash>>trash>>div;
+		stringstream(lines[4].substr(
+					 lines[4].find(':') + 1))>>trash>>trash>>trash>>idYes;
+		stringstream(lines[5].substr(
+					 lines[5].find(':') + 1))>>trash>>trash>>trash>>idNo;
 
-	int size(){return items.size();}
-	bool checkAndThrow(int* ptr){
-		int e = items.back();
-		items.pop_back();
-		if(e % div == 0)
-			return true;
+		//stringstream(startItemsLine)>>items;
+		//line = "Starting items: 59, 74, 65, 86"
+		stringstream x(lines[1].substr(
+			   lines[1].find(':') + 1));
+		while(1){
+			int i = -1;
+			x>>i>>trash;
+			if(i<0){
+				break;
+			}
+			items.emplace_back(i);
+		}		
+		stringstream(lines[2].substr(
+					 lines[2].find(':') + 1))
+					 >>trash //new
+					 >>trash //=
+					 >>trash //old
+					 >>op>>arg;
+		counter = 0;
 	}
-	void operate(int i){
-		switch(op){
-			case '+':
-				items[i] = items[i] + arg;
-				break;
-			case '-':
-				items[i] = items[i] - arg;
-				break;
-			case '*':
-				items[i] = items[i] * arg;
-				break;
-			case '^':
-				items[i] = items[i] * items[i];
-				break;
+
+	void operate(){
+		for(int j = 0; j < items.size(); j++){				
+			switch(op){
+				case '+':
+					items[j] = items[j] + arg;
+					break;
+				case '-':
+					items[j] = items[j] - arg;
+					break;
+				case '*':
+					items[j] = items[j] * arg;
+					break;
+				case '^':
+					items[j] = items[j] * items[j];
+					break;			
+			}
 		}
 	}
 
-	cMonkey init(string idline, 
-				string strartItemsLine, 
-				string operationLine,
-				string testLine,
-				string idYesLIne,
-				string idNoLine){
-		stringstream(idline)>> id;
-		stringstream(testLine)>>div;
-		stringstream(idYesLIne)>>idYes;
-		stringstream(idNoLine)>>idNo;
+	bool check(int i){
+		return items[i]% div == 0;
+	}
 
-		//stringstream(strartItemsLine)>>items;
-		//line = "Starting items: 59, 74, 65, 86"
-		auto trash =   strartItemsLine.substr(
-				startItemsLine.find(':')).
-				split(','));
-		// items = string.toInt(
-		// 		strartItemsLine.substr(
-		// 		startItemsLine.find(':')).
-		// 		split(',').toInt()
-		// );
-		//неспешный гротескный смех, безумный и зловещий
-		
-		stringstream(operationLine.substr(
-						operationLine.find(':'))
-					)>>op>>arg;
+	void checkAndThrow(vector<vector<int>> &newItems){
+		for(int j = 0; j < items.size(); j++){
+			if(check(j)){
+				newItems[idYes].emplace_back(items[j]);
+			}
+			else{
+				newItems[idNo].emplace_back(items[j]); 
+			}
+			counter++;
+		}
+	}
+
+	void catchIt(vector<int> &newItems){
+		items.clear();
+		items.insert(items.begin(),newItems.begin(),newItems.end());
+	}
+
+	int result(){
+		return counter;
 	}
 };
 
 class cKeepAway{
-	void operateAll(){
+	void operateItems(){
 		for(int i = 0; i < tribe.size(); i++){
-			for(int j = 0; j < tribe[i].size(); j++){
-				tribe[i].operate(j);				
-			}
+			tribe[i].operate();
 		}
 	}
 	void throwItems(vector<vector<int>> &newItems){
 		newItems.resize(tribe.size());
-
-		int value;
 		for(int i = 0; i < tribe.size(); i++){
-			for(int j = 0; j < tribe[i].size(); j++){
-				if(tribe[i].checkAndThrow(&value)){
-					newItems[tribe[i].idYes].emplace_back(value);
-				}
-				else{
-					newItems[tribe[i].idNo].emplace_back(value); 
-				}
-			}
+			tribe[i].checkAndThrow(newItems);
 		}
 	}
-
+	void catchItems(vector<vector<int>> &newItems){
+		for(int i = 0; i < tribe.size(); i++){
+			//tribe[i].items = newItems[i];
+			tribe[i].catchIt(newItems[i]);
+		}		
+	}
 	public:
 	vector<cMonkey> tribe;
-	void addMonkey(string line1,
-				string line2,
-				string line3,
-				string line4,
-				string line5,
-				string line6){					
-		tribe.emplace_back(line1,
-				line2,
-				line3,
-				line4,
-				line5,
-				line6);
+	void addMonkey(string lines[]){					
+		tribe.emplace_back(lines);
 	}
 	
 	void move(){
 		vector<vector<int>> newItems;
-		operateAll();
+		operateItems();
 		throwItems(newItems);
-		//catch items
-		for(int i = 0; i < tribe.size(); i++){
-			tribe[i].items = newItems[i];
-		}
+		catchItems(newItems);
+	}
+	int resultAcc(){
+		int result = 0;
+		accumulate(tribe.begin(), tribe.end(), result,
+			 int[] (const cMonkey &m1, const cMonkey &m2){
+			return max(m1.result(), m2.result());});
 	}
 }KeepAway;
 
-int readFileToSMt(){	
-	string line;
+int readFileToSMt(){
 	ifstream ifstr("cond.input", ios::binary);
 	int id = 0;
 	int status = ifstr.is_open();
 	string trash;
 	while(1){
-		getline(ifstr, line);
-		
+		string lines[7];
+		for(int i = 0; i < 7; i++)
+			getline(ifstr, lines[i]);
+		//new monkey arrive!
+		KeepAway.addMonkey(lines);
 		if(ifstr.eof()){
 			ifstr.close();
 			break;
 		}
-		//new monkey arrive!
-		tribe.emplace_back();
-		cMonkey* m = &(tribe.back());
-		//1) get id
-		stringstream s1(line);
-		s1>>trash>>m->id;
-		//2) get starting items
-		getline(ifstr, line);
-		stringstream st2(line);
-		st2>>trash>>trash;
-		while(1){
-			int i = 0;
-			st2>>i>>trash;
-			if(i == 0)
-				break;
-			m->items.emplace_back(i);
-		}
-		//3) get operation what to do here?
-		getline(ifstr, line);
-		int i = line.find(':');
-		m->opStr = line.substr(i);
-		stringstream sop(line);
-		//4) get divisor for test
-		getline(ifstr, line);
-		stringstream sdiv(line);
-		sdiv>>m->div;
-		//5) get monkey to throw if test Yes
-		getline(ifstr, line);
-		stringstream sidYes(line);
-		sidYes>>m->idYes;
-		//6) get monkey to throw if test No
-		getline(ifstr, line);
-		stringstream sidNo(line);
-		sidNo>>m->idNo;
 	}
 	return 0;
 }
 
-int void solve(){
+int solve(){
 	//for(int i = 0; i < 20; i++)
-	KeepAway.move();
-	return accumulate(max, KeepAway.begin(), KeepAway.end());
-
+	KeepAway.move();	
+	return KeepAway.resultAcc();
 }
 
 int main(void){
 	int result;
 	readFileToSMt();
-	solve();
+	result = solve();
 	cout<<"there are "<<result<<" in result"<<endl;
 	return 0;
 }
