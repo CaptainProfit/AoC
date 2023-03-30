@@ -29,9 +29,9 @@ void solve(){
 }
 
 int main(void){
-	readFileToSMt();
+	int result;
+	readFileToSMt();	
 	solve();
-	cout<<"there are "<<result<<" visible trees"<<endl;
-	//1816 correct
+	cout<<"there are "<<result<<" in result"<<endl;
 	return 0;
 }
