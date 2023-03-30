@@ -43,6 +43,11 @@ int readFileToSMt(){
 }
 
 vector<string> answer;
+void checkRay(int ticks, int x){
+ 	if(abs(ticks%40 - x) <= 1)
+		answer[ticks/40][ticks%40] = '#';
+}
+
 void solve(){
 	answer.resize(6);
 	for(int i =0; i < answer.size(); i++){
@@ -55,22 +60,18 @@ void solve(){
 	for(auto cmd:commands){
 		switch(cmd.first){
 			case 'n':
+				checkRay(ticks, x);
 				ticks++;
-				if(abs(ticks - x) <= 1)
-					answer[ticks/40][ticks%40] = '#';
 				break;
 			case 'a':
-				if(abs(ticks - x) <= 1)
-					answer[ticks/40][ticks%40] = '#';
+				checkRay(ticks, x);
 				ticks++;
-				if(abs(ticks - x) <= 1)
-					answer[ticks/40][ticks%40] = '#';
+				checkRay(ticks, x);
 				ticks++;
 		}
 		x+=cmd.second;
-		if(abs(ticks%40 - x) <= 1)
-			answer[ticks/40][ticks%40] = '#';
-		if((ticks/40)>5)
+		// checkRay(ticks, x);
+		if((ticks)>240)
 			return;
 	}
 }
