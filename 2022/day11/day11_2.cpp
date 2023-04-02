@@ -2,6 +2,8 @@
 //problem - https://adventofcode.com/2022/day/11
 //2147483647 - LONG_MAX
 //18446744073709551615 - ULLONG_MAX
+//damn! 10000 rounds!
+//no worry relaxing by 3
 #include <iostream> 
 #include <fstream>
 #include <sstream>
@@ -15,13 +17,12 @@
 using namespace std;
 class cMonkey{
 	int id = -1;
-	int div = -1;
 	char op;
 	int arg = -1;
-	int counter = -1;
 	vector<ll> items;
-
-	public:	
+	ull counter = -1;
+	public:		
+	int div = -1;
 	int idYes = -1;	
 	int idNo = -1;
 	cMonkey(string lines[]){
@@ -65,7 +66,7 @@ class cMonkey{
 	int size(){
 		return items.size();
 	}
-	void inspect(){
+	void inspect(ll totalDivisor){
 		for(int j = 0; j < items.size(); j++){				
 			switch(op){
 				case '+':
@@ -83,7 +84,8 @@ class cMonkey{
 		
 			}
 			//inspect doesnot hurt item - relax a bit
-			items[j]/=3;
+			//items[j]/=3;
+			items[j] %= totalDivisor;		
 		}
 	}
 
@@ -109,7 +111,7 @@ class cMonkey{
 		items.insert(items.begin(),newItems.begin(),newItems.end());
 	}
 
-	int result() const{
+	ull result() const{
 		return counter;
 	}
 
@@ -124,9 +126,10 @@ class cMonkey{
 };
 
 class cKeepAway{
+	ll totalDivisor = 1;
 	void inspectItems(){
 		for(int i = 0; i < tribe.size(); i++){
-			tribe[i].inspect();
+			tribe[i].inspect(totalDivisor);
 		}
 	}
 	void throwItems(vector<vector<int>> &newItems){
@@ -145,6 +148,7 @@ class cKeepAway{
 	vector<cMonkey> tribe;
 	void addMonkey(string lines[]){					
 		tribe.emplace_back(lines);
+		totalDivisor *= tribe.back().div;
 	}
 	
 	void move(){
@@ -153,20 +157,21 @@ class cKeepAway{
 		//inspectItems();
 		//throwItems(newItems);
 		for(int i = 0; i < tribe.size(); i++){
-			tribe[i].inspect();
+			tribe[i].inspect(totalDivisor);
 			newItems.resize(tribe.size());
 			tribe[i].checkAndThrow(newItems);
 			catchItems(newItems);
 			newItems.clear();
 		}
 	}
-	int resultAcc(){
-		int result = 0;
+	ull resultAcc(){
+		ull result = 0;
 		sort(tribe.begin(), tribe.end(), 
 			[] (cMonkey const &m1, cMonkey const &m2){
 				return m1.result() > m2.result();}
-			);		
-		return tribe[0].result() * tribe[1].result();
+			);	
+		result = tribe[0].result() * tribe[1].result();
+		return result;
 	}
 	ll calcItems(){
 		return accumulate(tribe.begin(), tribe.end(), 0, 
@@ -184,6 +189,13 @@ class cKeepAway{
 		for(int i = 0 ; i < tribe.size(); i++){
 			cout<<"monkey "<<i<<": ";
 			tribe[i].print();
+		}
+	}
+	void printInspects(){
+		for(int i = 0 ; i < tribe.size(); i++){
+			cout<<"monkey "<<i;
+			cout<<" inspected items "<<tribe[i].result();
+			cout<<" times"<<endl;
 		}
 	}
 }KeepAway;
@@ -207,32 +219,33 @@ int readFileToSMt(){
 	return 0;
 }
 
-int solve(){
+ull solve(){
 	ll totalItems, totalActivity;
 	totalItems = KeepAway.calcItems();
 	cout<<"start"<<endl;
 	KeepAway.printTribe();
-	for(int i = 0; i < 20; i++){
+	for(int i = 0; i < 10000; i++){
 		KeepAway.move();
-		cout<<"round "<<i+1<<endl;
-		KeepAway.printTribe();
-		totalItems = KeepAway.calcItems();
-		totalActivity = KeepAway.calcActivity();
-	} 
-	
+		if( i% 1000 == (1000-1)){
+			cout<<"round "<<i+1<<endl;
+			//KeepAway.printTribe();
+			KeepAway.printInspects();
+			totalItems = KeepAway.calcItems();
+			totalActivity = KeepAway.calcActivity();
+		}
+	} 	
 
 	return KeepAway.resultAcc();
 }
 
 int main(void){
-	int result;
+	ull result;
 	readFileToSMt();
 	result = solve();
 	//total 32 items. dropping 20 times
 	// total count =
 	cout<<"there are "<<result<<" in result"<<endl;
-	//17820 too low
-	//61005 correct
+	//20567144694 correct ez!
 	//test passed
 	return 0;
 }
