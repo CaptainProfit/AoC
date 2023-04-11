@@ -1,3 +1,4 @@
 *.exe
 *.bat
 *.json
+/2022/session.cookie
