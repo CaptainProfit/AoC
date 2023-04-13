@@ -25,23 +25,29 @@ class cTree{
 	//инвариант abs(left->height - right->height) < 2
 	cTree *left, *right, *parent = nullptr;
 	
-	//misc
-	bool isRoot(void);
-	// bool isLeaf(void);
+	//методы дерева
+	bool isRoot(void){ return parent == this; }
+	bool isLeaf(void){ return parent == this; }
+	bool isEmpty(void){	return parent == nullptr; }
+	int size(){ return size; }
 	// bool isMeLeftChild(void);	
-	
-	// методы для инвариантов авл
-	void rotateLeft(cTree* X);
-	void rotateRight(cTree* Y);
-	void rotateLeftDouble(cTree& left, cTree& center, cTree& right);
-	void rotateRightDouble(cTree& left, cTree& center, cTree& right);
-	public:
+	//методы для инвариантов авл
+	void restoreInvariants(void);
+	int calculateInvariant(void);
+
+	// методы балансировки
+	void rotateLeft(cTree*);
+	void rotateRight(cTree*);
+	void rotateLeftDouble(cTree*);
+	void rotateRightDouble(cTree*);
+	public:	
 	cTree(T x);
-	cTree& operator[](int index);
+	T& operator[](int index);
+	cTree<T>& operator[](int index);
 	int getIndex(cTree* ptr);
-	void insert(int index, int value);
+	void insert(int index, T value);
 	void push_back(int value);
-	void delete(int index);
+	void remove(int index);
 
 	int size(void);
 };

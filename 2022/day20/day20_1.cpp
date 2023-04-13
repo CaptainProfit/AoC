@@ -29,8 +29,10 @@ int solve(cTree<int>& root){
 	
 	int d = root.size();
 	int z = 0;
-	//формирую очередь штук
-	vector<cTree*> pointers(d);
+	//формирую очередь указателей на объекты внутри стуктуры,
+	// которые привязаны не к положению в структуре, а к положению
+	// изначальному. таково условие задачи.
+	vector<cTree<int>*> pointers(d);
 	for(int i = 0; i < d; i++){
 		pointers[i] = &root[i];
 	}
@@ -41,7 +43,7 @@ int solve(cTree<int>& root){
 		int value = root[oldIndex];
 		int newIndex = (i + value + d) % d;
 		//переставить значение на новое место.
-		root.delete(oldIndex);		
+		root.remove(oldIndex);		
 		root.insert(newIndex, value);
 	}
 

@@ -1,7 +1,24 @@
 //[UTF-8 en/ru]
 #include <orderedTree.hpp>
-	
-cTree::T& cTree::operator[](int index){
+
+/************************************************************
+* @group группа методов интерфейса
+************************************************************/
+
+template<typename T>
+cTree<T>::cTree(T newData){
+	data = newData;
+	height = 0; // высота листа
+	size = 1; // размер листа, то есть содержит только свой элемент
+}
+
+template<typename T>
+T& cTree<T>::operator[](int index){
+	return this->[index]->element;
+}
+
+template<typename T>
+cTree<T>& cTree<T>::operator[](int index){
 	cTree* ptr = this;
 	
 	//нужно развернуть рекурсию в цикл, тут не нужен стек.
@@ -9,7 +26,7 @@ cTree::T& cTree::operator[](int index){
 	if(left != nullptr){
 		leftSize = left->size;
 	}
-	// 1) рекурсивный поиск в левом поддереве
+	//1) рекурсивный поиск в левом поддереве
 	if(index < leftSize){
 		return left->[index];
 		//try 
@@ -19,26 +36,19 @@ cTree::T& cTree::operator[](int index){
 		/// == ?
 		return [index];
 	}
-	// 2) ответ корень
+	//2) ответ корень
 	if(index == leftSize){
 		return &this;
 	}
-	// 3) рекурсивный поиск в правом поддереве
+	//3) рекурсивный поиск в правом поддереве
 	if(right != nullptr){		
 		return right->[index - leftSize];
 	}
-	// 4) exception чтото пошло не так.
+	//4) exception чтото пошло не так.
 }
 
-// bool cTree::isMeLeftChild(){
-// 	return ptr->paretn->left == ptr;
-// }
-
-bool cTree::isRoot(){
-	return parent == this;
-}
-
-int cTree::getIndex(cTree* ptr){
+template<typename T>
+int cTree<T>::getIndex(cTree* ptr){
 	int leftSize = 0;
 	if(ptr->left != nullptr){
 		leftSize = ptr->left->size;
@@ -49,22 +59,97 @@ int cTree::getIndex(cTree* ptr){
 	return leftSize + getIndex(ptr->parent);
 }
 
-cTree::cTree(T newData){
-	data = newData;
-	height = 0; // высота листа
-	size = 1; // размер листа, то есть содержит только свой элемент.
+template<typename T>
+void cTree<T>::insert(int index, T value){
+	//1) структура была пуста. новый элемент теперь корень 
+	// и значит он сам себе папа
+	if(isEmpty()){
+		parent = this;
+		return;
+	}
 
+	//2) создать элемент
+	cTree* newElement = new cPoint(value);
+	
+	//3) найти куда его вставить
+	cTree* it = &[index];
+	if(it->right == nullptr){
+		it->right = newElement;
+	}
+	else{
+		for(; it->left != nullptr; it = it->left){
+		}
+		it->left = newElement;
+	}
+	newElement->parent = it;
+
+	//4) восстанавить инварианты
+	newElement->restoreInvariants();
 }
 
-void cTree::rotateLeft(cTree* X){
-	// 1) X->Y to X<-Y
+template<typename T>
+void cTree<T>::remove(int index){
+	//1) остался только корень
+	if(size == 1){
+		parent = nullptr;
+		return;
+	}
+
+	//2) найти кого удаляю
+	cTree* marked = &[index];
+	
+	//3) пусть он всплывет в лист
+	
+	// if(marked->right == nullptr){
+	// 	if(marked->parent->left == marked){
+	// 		marked->parent->left = marked->left;
+	// 	}
+	// 	else{
+	// 		marked->parent->right = marked->left;
+	// 	}
+	// }
+	// else
+	{
+		cTree* it = marked;
+		if(it->right != nullptr){
+			it = it->right;
+		}
+		for(; it->left != nullptr; it = it->left){			
+		}
+		//меняю местами
+		swap(marked->parent, it->parent);
+		swap(marked->left, it->left);
+		swap(marked->right, it->right);
+		if(!marked->isLeaf()){
+			swap(marked->right->parent, marked->parent);
+			swap(marked->right->left, marked->left);
+			swap(marked->right->right, marked->right);
+			//it = it->right;
+		}
+		
+	}
+
+	//4) восстанавить инварианты
+	marked->parent->restoreInvariants();
+
+	//5) удаляю 
+	delete marked;
+}
+
+/************************************************************
+* @group группа функций балансировки дерева
+************************************************************/
+
+template<typename T>
+void cTree<T>::rotateLeft(cTree* X){
+	//1) X->Y to X<-Y
 	cTree* parent = X->parent;
 	cTree* Y = X->right;
 	//cTree* subtree1 = X->left;
 	cTree* subtree23 = Y->left;
 	//cTree* subtree4 = Y->right;	
 
-	// 2) переключение предка
+	//2) переключение предка
 	if(X->parent != &X){
 		if(parent->left == X){
 			parent->left = Y;
@@ -78,21 +163,22 @@ void cTree::rotateLeft(cTree* X){
 		parent = Y;
 	}
 
-	// 3) поворот
+	//3) поворот
 	Y->parent = parent;
 	Y->left = X;
 	X->right = subtree23;
 }
 
-void cTree::rotateRight(cTree* Y){
-	// 1) X<-Y to X->Y
+template<typename T>
+void cTree<T>::rotateRight(cTree* Y){
+	//1) X<-Y to X->Y
 	cTree* parent = Y->parent;
 	cTree* X = Y->left;
 	//cTree* subtree1 = X->left;
 	cTree* subtree23 = X->right;
 	//cTree* subtree4 = Y->right;
 
-	// 2) переключение предка
+	//2) переключение предка
 	if(Y->parent != &Y){
 		if(parent->left == Y){
 			parent->left = X;
@@ -106,13 +192,14 @@ void cTree::rotateRight(cTree* Y){
 		parent = X;
 	}
 
-	// 3) поворот
+	//3) поворот
 	X->parent = parent;
 	X->left = left;
 	Y->right = subtree23;
 }
 
-void rotateLeftDouble(cTree* X){
+template<typename T>
+void cTree<T>::rotateLeftDouble(cTree* X){
 	// X->Y-<Z to X<-Z->Y
 	cTree* Y = X->left;
 	cTree* Z = Y->right;
@@ -120,7 +207,8 @@ void rotateLeftDouble(cTree* X){
 	rotateLeft(X);
 }
 
-void rotateRightLeftDouble(cTree* Y){
+template<typename T>
+void cTree<T>::rotateRightDouble(cTree* Y){
 	// X->Y-<Z to X<-Z->Y
 	cTree* X = X->right;
 	cTree* Z = X->left;
@@ -128,71 +216,56 @@ void rotateRightLeftDouble(cTree* Y){
 	rotateRight(Y);
 }
 
+/************************************************************
+* @group группа функций работы с инвариантами
+************************************************************/
 
-void cTree::insert(int index, T value){
-	//1) структура была пуста. новый элемент теперь корень 
-	// и значит он сам себе папа
-	if(size == 0){
-		parent = this;
-		return;
+template<typename T>
+int cTree<T>::calculateInvariant(){
+	int leftH = 0, rightH = 0, leftSize = 0, rightSize = 0;
+	if(left != nullptr){
+		leftH = left->height;
+		leftSize = left->size;
 	}
-
-	// 2)создать элемент и найти куда его вставить.
-	cTree* newElement = new cPoint(value);
-	
-	// 3) найти куда его вставить.
-	cTree* it = &[index];
-	if(it->right == nullptr){
-		it->right = newElement;
+	if(right != nullptr){
+		rightH = right->height;
+		rightSize = right->size;
 	}
-	else{
-		for(; it->left != nullptr; it = it->left){
-		}
-		it->left = newElement;
-	}
-	newElement->parent = it;
-
-	// 4) восстанавить инварианты.
-	// высоты по правилам АВЛ
-	// размеры - сначала вдоль АВЛ, потом до корня 
-	TODO восстановление инвариантов
+	h = min(leftH, rightH) + 1;
+	size = 1 + leftSize + rightSize;
+	if(abs(leftH - rightH) < 2)
+		return 0;
+	return	leftH - rightH;
 }
 
-cTree::void remove(int index){
-	
-	// 1) остался только корень. 
-	if(size == 1){
-		parent = nullptr;
-		return;
-	}
-
-	// 2) найти кого удаляю
-	cTree* it = &[index];
-
-	// 3) свопаю его до листа.
-	for(; it != nullptr; it = ){
-		ptr->element = move(next->element);
-		ptr = next;
-	}
-	//delete leaf
-	cTree* prev = ptr;
-	delete ptr;
-
-	//go back - restore sizes
-	ptr->size -= 1;
-	for(; prev != nullptr; prev = ptr->parnet){
-		//restore sizes;
-		ptr = prev;
-		if(abs(ptr->left->size + ptr->right->size) >=2){
-			// если такое бывает - в чем я не уверен пока что
-			// стоит задуматься над балансировкой.
-		}
-		ptr->size = 1 + ptr->left->size + ptr->right->size;
-	}
-	
-	// 4) восстанавить инварианты.
+template<typename T>
+void cTree<T>::restoreInvariants(){
 	// высоты по правилам АВЛ
-	// размеры - сначала вдоль АВЛ, потом до корня 	
-	TODO восстановление инвариантов
+	// размеры - сначала вдоль АВЛ, потом до корня
 
+	it = newElement;
+	while(1){
+		int condition = it->calculateInvariant();
+		if(condition > 0){
+			// левое поддерево выше правого
+			if(it->left->calculateInvariant() < 0){
+				it->rotateLeftDouble();
+			}
+			else{
+				it->rotateLeft();
+			}
+		}
+		if(condition < 0){
+			// правое поддерево выше левого
+			if(it->right->calculateInvariant() > 0){
+				it->rotateRightDouble();
+			}
+			else{
+				it->rotateRight();
+			}
+		}
+		if(it->isRoot()){
+			break;
+		}
+	}
 }
