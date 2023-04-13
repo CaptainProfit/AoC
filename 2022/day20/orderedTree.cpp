@@ -1,21 +1,22 @@
 //[UTF-8 en/ru]
-#include <orderedTree.hpp>
-
+#include "orderedTree.hpp"
+#include <cstdlib>
+#include <algorithm>
 /************************************************************
 * @group группа методов интерфейса
 ************************************************************/
-
+using namespace std;
 template<typename T>
 cTree<T>::cTree(T newData){
-	data = newData;
+	element = newData;
 	height = 0; // высота листа
 	size = 1; // размер листа, то есть содержит только свой элемент
 }
 
-template<typename T>
-T& cTree<T>::operator[](int index){
-	return this->[index]->element;
-}
+// template<typename T>
+// T& cTree<T>::operator[](int index){
+// 	return this->[index]->element;
+// }
 
 template<typename T>
 cTree<T>& cTree<T>::operator[](int index){
@@ -48,7 +49,7 @@ cTree<T>& cTree<T>::operator[](int index){
 }
 
 template<typename T>
-int cTree<T>::getIndex(cTree* ptr){
+int cTree<T>::getIndex(){
 	int leftSize = 0;
 	if(ptr->left != nullptr){
 		leftSize = ptr->left->size;
@@ -56,7 +57,7 @@ int cTree<T>::getIndex(cTree* ptr){
 	if(isRoot()){
 		return leftSize;
 	}
-	return leftSize + getIndex(ptr->parent);
+	return leftSize + ptr->parent->getIndex();
 }
 
 template<typename T>
@@ -97,7 +98,9 @@ void cTree<T>::remove(int index){
 
 	//2) найти кого удаляю
 	cTree* marked = &[index];
-	
+	marked = this[index];
+	marked = this->[index];
+	marked = [index];
 	//3) пусть он всплывет в лист
 	
 	// if(marked->right == nullptr){
@@ -231,7 +234,7 @@ int cTree<T>::calculateInvariant(){
 		rightH = right->height;
 		rightSize = right->size;
 	}
-	h = min(leftH, rightH) + 1;
+	height = min(leftH, rightH) + 1;
 	size = 1 + leftSize + rightSize;
 	if(abs(leftH - rightH) < 2)
 		return 0;
@@ -243,7 +246,7 @@ void cTree<T>::restoreInvariants(){
 	// высоты по правилам АВЛ
 	// размеры - сначала вдоль АВЛ, потом до корня
 
-	it = newElement;
+	cTree* it = this;
 	while(1){
 		int condition = it->calculateInvariant();
 		if(condition > 0){
@@ -264,8 +267,10 @@ void cTree<T>::restoreInvariants(){
 				it->rotateRight();
 			}
 		}
+		
 		if(it->isRoot()){
 			break;
 		}
+		it = it->parent;
 	}
 }

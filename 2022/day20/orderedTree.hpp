@@ -29,7 +29,7 @@ class cTree{
 	bool isRoot(void){ return parent == this; }
 	bool isLeaf(void){ return parent == this; }
 	bool isEmpty(void){	return parent == nullptr; }
-	int size(){ return size; }
+	
 	// bool isMeLeftChild(void);	
 	//методы для инвариантов авл
 	void restoreInvariants(void);
@@ -41,13 +41,15 @@ class cTree{
 	void rotateLeftDouble(cTree*);
 	void rotateRightDouble(cTree*);
 	public:	
-	cTree(T x);
-	T& operator[](int index);
+	cTree(){};
+	cTree(T x);	
+	int sizef(void){ return size; }
+	//T& operator[](int index);
 	cTree<T>& operator[](int index);
-	int getIndex(cTree* ptr);
+	int getIndex();
+	T& getValue(void){ return element;} 
+
 	void insert(int index, T value);
 	void push_back(int value);
 	void remove(int index);
-
-	int size(void);
 };

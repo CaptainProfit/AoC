@@ -27,7 +27,7 @@ int readFileToSMt(cTree<int>& root){
 
 int solve(cTree<int>& root){
 	
-	int d = root.size();
+	int d = root.sizef();
 	int z = 0;
 	//формирую очередь указателей на объекты внутри стуктуры,
 	// которые привязаны не к положению в структуре, а к положению
@@ -39,8 +39,8 @@ int solve(cTree<int>& root){
 
 	for(int i = 0; i < d; i++){
 		//вычислить где, что и куда надо переставить
-		int oldIndex = root.getIndex(pointers[i]);
-		int value = root[oldIndex];
+		int oldIndex = pointers[i]->getIndex();
+		int value = root[oldIndex].getValue();
 		int newIndex = (i + value + d) % d;
 		//переставить значение на новое место.
 		root.remove(oldIndex);		
@@ -51,7 +51,9 @@ int solve(cTree<int>& root){
 	int id1 = (z + 1000)%d;
 	int id2 = (z + 2000)%d;
 	int id3 = (z + 3000)%d;
-	return root[id1] + root[id2] + root[id3];
+	return root[id1].getValue() + 
+			root[id2].getValue() +
+		    root[id3].getValue();
 }
 
 int main(void){
