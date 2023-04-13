@@ -32,12 +32,12 @@ int solve(cTree<int>& root){
 	//формирую очередь штук
 	vector<cTree*> pointers(d);
 	for(int i = 0; i < d; i++){
-		pointers[i] = *root[i];
+		pointers[i] = &root[i];
 	}
 
 	for(int i = 0; i < d; i++){
 		//вычислить где, что и куда надо переставить
-		int oldIndex = pointers[i]->getIndex();
+		int oldIndex = root.getIndex(pointers[i]);
 		int value = root[oldIndex];
 		int newIndex = (i + value + d) % d;
 		//переставить значение на новое место.
