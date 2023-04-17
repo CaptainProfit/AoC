@@ -6,61 +6,62 @@
 #include <fstream>
 #include <string>
 #include <vector>
-#include <orderedTree.hpp>
+#include "orderedTree.hpp"
 #define ull unsigned long long
 
 using namespace std;
+template class cTree<int>;
 
-int readFileToSMt(cTree<int>& root){
+int readFileToSMt(cTree<int>& storage){
 	string line;
-	ifstream ifstr("cond.input", ios::binary);
+	ifstream ifstr("testInsert.input", ios::binary);
 	while(1){
 		getline(ifstr, line);
 		if(ifstr.eof()){
 			ifstr.close();
 			break;
 		}
-		root.push_back(stoi(line));		
+		storage.push_back(stoi(line));
 	}	
 	return 0;
 }
 
-int solve(cTree<int>& root){
+int solve(cTree<int>& storage){
 	
-	int d = root.sizef();
+	int d = storage.sizef();
 	int z = 0;
 	//формирую очередь указателей на объекты внутри стуктуры,
 	// которые привязаны не к положению в структуре, а к положению
 	// изначальному. таково условие задачи.
 	vector<cTree<int>*> pointers(d);
 	for(int i = 0; i < d; i++){
-		pointers[i] = &root[i];
+		pointers[i] = &(storage[i]);
 	}
 
 	for(int i = 0; i < d; i++){
 		//вычислить где, что и куда надо переставить
 		int oldIndex = pointers[i]->getIndex();
-		int value = root[oldIndex].getValue();
+		int value = storage[oldIndex].getValue();
 		int newIndex = (i + value + d) % d;
 		//переставить значение на новое место.
-		root.remove(oldIndex);		
-		root.insert(newIndex, value);
+		storage.remove(oldIndex);		
+		storage.insert(newIndex, value);
 	}
 
 	//математическая формула из условия задачи
 	int id1 = (z + 1000)%d;
 	int id2 = (z + 2000)%d;
 	int id3 = (z + 3000)%d;
-	return root[id1].getValue() + 
-			root[id2].getValue() +
-		    root[id3].getValue();
+	return storage[id1].getValue() + 
+			storage[id2].getValue() +
+		    storage[id3].getValue();
 }
 
 int main(void){
-	cTree<int> root;
+	cTree<int> storage;
 	int result;
-	readFileToSMt(root);	
-	result = solve(root);
+	readFileToSMt(storage);	
+	result = solve(storage);
 	cout<<"there are "<<result<<" in result"<<endl;
 	return 0;
 }

@@ -1,5 +1,8 @@
 //[UTF-8 en/ru]
 #pragma once
+#include <cstdlib>
+#include <algorithm>
+
 #define ull unsigned long long
 
 using namespace std;
@@ -23,25 +26,39 @@ class cTree{
 	//пустые деревья имеют размер ноль.
 	int height = 0; // для балансировки AVL
 	//инвариант abs(left->height - right->height) < 2
-	cTree *left, *right, *parent = nullptr;
-	
+	cTree *left, *right, *parent;
+	cTree *root;
+
 	//методы дерева
 	bool isRoot(void){ return parent == this; }
-	bool isLeaf(void){ return parent == this; }
+	bool isLeaf(void){ return left == nullptr && right == nullptr; }
 	bool isEmpty(void){	return parent == nullptr; }
 	
 	// bool isMeLeftChild(void);	
 	//методы для инвариантов авл
 	void restoreInvariants(void);
-	int calculateInvariant(void);
+	void calculateInvariant(void);
+	int checkBalance();
+	void restoreRoot(){
+		if(root != nullptr){
+			while(root->parent != root){
+				root = root->parent;
+			}
+		}
+	}
 
 	// методы балансировки
-	void rotateLeft(cTree*);
-	void rotateRight(cTree*);
-	void rotateLeftDouble(cTree*);
-	void rotateRightDouble(cTree*);
+	void rotateLeft();
+	void rotateRight();
+	void rotateLeftDouble();
+	void rotateRightDouble();
+	
 	public:	
-	cTree(){};
+	cTree(){
+		left = nullptr;
+		right = nullptr;
+		parent = nullptr;
+	};
 	cTree(T x);	
 	int sizef(void){ return size; }
 	//T& operator[](int index);
@@ -50,6 +67,10 @@ class cTree{
 	T& getValue(void){ return element;} 
 
 	void insert(int index, T value);
-	void push_back(int value);
+
+	//places copy of value to the end
+	void push_back(T value){
+		insert(size - 1, value);
+	}
 	void remove(int index);
 };
