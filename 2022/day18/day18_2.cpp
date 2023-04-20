@@ -9,14 +9,15 @@
 #include <vector>
 #include <string>
 #include <map>
+#include <list>
 #include <algorithm>
 #define ull unsigned long long
 
 using namespace std;
 
 class cPoint{
-	int z, y, x;
 	public:
+	int z, y, x;
 	cPoint():cPoint(0, 0, 0){}
 	cPoint(int nz, int ny, int nx){
 		z = nz;
@@ -24,10 +25,24 @@ class cPoint{
 		x = nx;
 	}
 	
-	void add(int dz, int dy, int dx){
+	cPoint(const cPoint& c){
+		z = c.z;
+		y = c.y;
+		x = c.x;
+	}
+	
+	cPoint& add(const cPoint& c){
+		z += c.z;
+		y += c.y;
+		x += c.x;
+		return *this;
+	}
+	
+	cPoint& add(int dz, int dy, int dx){
 		z += dz;
 		y += dy;
 		x += dx;
+		return *this;
 	}
 
 	int compareZYX(const cPoint& c) const{
@@ -62,7 +77,6 @@ class cPoint{
 				abs(y - c.y) +
 				abs(x - c.x);
 	}	
-
 };
 
 int dist(const cPoint& lhs, const cPoint& rhs){
@@ -82,7 +96,9 @@ bool less3(const cPoint& lhs, const cPoint& rhs){
 bool operator<(const cPoint& lhs, const cPoint& rhs){
 		return lhs.compareZYX(rhs) < 0;
 }
-
+cPoint& operator+(cPoint lhs, const cPoint& rhs){
+	return lhs.add(rhs);
+}
 vector<cPoint> cells;
 map<cPoint, int> faces;
 
@@ -138,7 +154,47 @@ int solve1(){
 }
 
 int calculateNeighbours(){
+	vector<cPoint> dirs;
+	dirs.push_back(cPoint( 1, 0, 0));
+	dirs.push_back(cPoint(-1, 0, 0));
+	dirs.push_back(cPoint( 0, 1, 0));
+	dirs.push_back(cPoint( 0,-1, 0));
+	dirs.push_back(cPoint( 0, 0, 1));
+	dirs.push_back(cPoint( 0, 0,-1));
+
+	//1) взять точку рядом с камнем
+	sort(cells.begin(), cells.end());
+	cPoint first = cells[0];
+	first.z--;
+	
+	//2) делаю мап из точек и их дальности от поверхности булыжника
+	map<cPoint, int> waterCells;
+	list<cPoint> stack;
+	// покрываю булыжник слоем воды толщиной 3 - 
+	// если это 
 	int acc = 0;
+	while(!stack.empty()){
+		cPoint iter = stack.back();
+		// сначала проверяю, что точка рядом 
+		for(int i = 0; i < 6; i++){
+			if(cells.find(iter + dirs[i]) != cells.end()){
+				waterCells[iter] = 1;
+			}
+		}
+		if(waterCells[iter] <= 2)
+		for(int i = 0; i < 6; i++){
+			//
+			if(cells.find(iter + dirs[i]) != cells.end()){
+				acc++;
+			}
+			if(waterCells.find(iter+dirs[i]) == waterCells.end()){
+				waterCells.emplace(iter, waterCells[iter] + 1);
+				stack.push_back(iter+dirs[i]);
+			}
+		}
+
+	}
+	
 	for(int i = 1; i < cells.size(); i++){
 		if(dist(cells[i - 1], cells[i]) == 2){
 			acc++;
@@ -166,8 +222,8 @@ int main(void){
 	int result;
 	readFileToSMt("test.input");
 	result = solve1();
-	// test должно быть 64
-	if( result != 64){
+	// test должно быть 58
+	if( result != 58){
 		cout<<"test failed with "<<result<<" in test"<<endl;
 		return 0;
 	}
