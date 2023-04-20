@@ -2,3 +2,4 @@
 *.bat
 *.json
 /2022/session.cookie
+*.o

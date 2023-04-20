@@ -2,6 +2,8 @@
 //problem - https://adventofcode.com/2022/day/18
 //2147483647 - LONG_MAX
 //18446744073709551615 - ULLONG_MAX
+//difference - надо считать не всю поверхность, а 
+// только внешнюю, замкнутые пустоты выбросить
 #include <iostream> 
 #include <fstream>
 #include <vector>
