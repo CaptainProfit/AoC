@@ -38,6 +38,13 @@ class cPoint{
 		return *this;
 	}
 	
+	cPoint& sub(const cPoint& c){
+		z -= c.z;
+		y -= c.y;
+		x -= c.x;
+		return *this;
+	}
+	
 	cPoint& add(int dz, int dy, int dx){
 		z += dz;
 		y += dy;
@@ -76,7 +83,17 @@ class cPoint{
 		return 	abs(z - c.z) +
 				abs(y - c.y) +
 				abs(x - c.x);
-	}	
+	}
+
+	cPoint& operator+=(const cPoint& rhs){
+		this->add(rhs);
+		return *this;
+	}
+
+	cPoint& operator-=(const cPoint& rhs){
+		this->sub(rhs);
+		return *this;
+	}
 };
 
 int dist(const cPoint& lhs, const cPoint& rhs){
@@ -96,9 +113,15 @@ bool less3(const cPoint& lhs, const cPoint& rhs){
 bool operator<(const cPoint& lhs, const cPoint& rhs){
 		return lhs.compareZYX(rhs) < 0;
 }
+
+bool operator==(const cPoint& lhs, const cPoint& rhs){
+		return lhs.compareZYX(rhs) == 0;
+}
+
 cPoint& operator+(cPoint lhs, const cPoint& rhs){
 	return lhs.add(rhs);
 }
+
 vector<cPoint> cells;
 map<cPoint, int> faces;
 
@@ -122,104 +145,84 @@ int readFileToSMt(string filename){
 	return 0;
 }
 
-void addFace(cPoint& cell, int dz, int dy, int dx){
-	cPoint face = cell;
-	face.add(dz, dy, dx);
-	map<cPoint, int>::iterator iter = faces.find(face);
-	if(iter != faces.end()){
-		faces.emplace(pair<cPoint,int>(face, 0));
-	}
-	faces[face] ++;
-}
-
 int solve1(){
-	//формирую грани
-	for(auto it:cells){
-		addFace(it,  0,  0,  1);
-		addFace(it,  0,  0, -1);
-		addFace(it,  0,  1,  0);
-		addFace(it,  0, -1,  0);
-		addFace(it,  1,  0,  0);
-		addFace(it, -1,  0,  0);
-	}	
-	
-	//считаю ответ
-	int acc = 0;
-	for(auto it:faces){
-		if (it.second == 1){
-			acc++;
-		}
-	}	
-	return acc;
-}
-
-int calculateNeighbours(){
+	// формирую направления 
 	vector<cPoint> dirs;
 	dirs.push_back(cPoint( 1, 0, 0));
 	dirs.push_back(cPoint(-1, 0, 0));
 	dirs.push_back(cPoint( 0, 1, 0));
 	dirs.push_back(cPoint( 0,-1, 0));
 	dirs.push_back(cPoint( 0, 0, 1));
-	dirs.push_back(cPoint( 0, 0,-1));
-
+	dirs.push_back(cPoint( 0, 0,-1));	
+	
 	//1) взять точку рядом с камнем
 	sort(cells.begin(), cells.end());
-	cPoint first = cells[0];
-	first.z--;
-	
+		
 	//2) делаю мап из точек и их дальности от поверхности булыжника
 	map<cPoint, int> waterCells;
+	cPoint start = cells[0];
+	start += dirs[1];
+	waterCells.emplace(start, 1);
 	list<cPoint> stack;
-	// покрываю булыжник слоем воды толщиной 3 - 
-	// если это 
+	stack.push_back(start);
+
+	//3) покрываю булыжник слоем воды толщиной 3 
+	// этого должно хватить для всяких поворотов
 	int acc = 0;
-	while(!stack.empty()){
-		cPoint iter = stack.back();
-		// сначала проверяю, что точка рядом 
+	for(; !stack.empty();){
+		//4) достану и рассмотрю точку из списка
+		cPoint iter = stack.back(); 
+		stack.pop_back();
+
+		//5) если точка рядом с булыжником - изменю её расстояние
 		for(int i = 0; i < 6; i++){
-			if(cells.find(iter + dirs[i]) != cells.end()){
+			if(find(cells.begin(), cells.end(), iter + dirs[i]) != cells.end()){
 				waterCells[iter] = 1;
-			}
-		}
-		if(waterCells[iter] <= 2)
-		for(int i = 0; i < 6; i++){
-			//
-			if(cells.find(iter + dirs[i]) != cells.end()){
-				acc++;
-			}
-			if(waterCells.find(iter+dirs[i]) == waterCells.end()){
-				waterCells.emplace(iter, waterCells[iter] + 1);
-				stack.push_back(iter+dirs[i]);
+				break;
 			}
 		}
 
+		//6) если точка слишком далеко от булыжника - она больше не интересует
+		if(waterCells.count(iter) == 0){
+			continue;
+		}
+		
+		if(waterCells[iter] > 2){
+			continue;
+		}
+
+		//7) рассмотрю всех соседей
+		for(int i = 0; i < 6; i++){
+			
+			//8) если сосед булыжник, то это грань, считаю её
+			if(find(cells.begin(), cells.end(), iter + dirs[i]) != cells.end()){
+				acc++;
+				continue; // автоматически не может быть ячейкой воды
+			}
+
+			//8) если сосед уже в списке воды - то больше не интересна
+			// иначе добавляю в стак и буду рассматривать, 
+			if(waterCells.find(iter+dirs[i]) == waterCells.end()){
+				waterCells.emplace(iter+dirs[i], waterCells[iter] + 1);
+				stack.push_front(iter+dirs[i]);
+			}
+		}
 	}
 	
-	for(int i = 1; i < cells.size(); i++){
-		if(dist(cells[i - 1], cells[i]) == 2){
-			acc++;
-		}
-	}
 	return acc;
-}
-
-// нет, всё сложнее. бывают ситуации, 
-// когда сортирую вдоль одной оси  -
-// и сохраняются соседства по другим 
-// осям и считается несколько раз.
-int solve2(){
-	int acc = 0;
-	sort(cells.begin(), cells.end(), less1);
-	acc += calculateNeighbours();
-	sort(cells.begin(), cells.end(), less2);
-	acc += calculateNeighbours();
-	sort(cells.begin(), cells.end(), less3);
-	acc += calculateNeighbours();
-	return cells.size()*6 - acc;
 }
 
 int main(void){
 	int result;
+	readFileToSMt("test2.input");
+	result = solve1();
+	// test должно быть 6
+	if( result != 6){
+		cout<<"test2 failed with "<<result<<" in test"<<endl;
+		return 0;
+	}
+	cells.clear();
+
 	readFileToSMt("test.input");
 	result = solve1();
 	// test должно быть 58
@@ -228,12 +231,13 @@ int main(void){
 		return 0;
 	}
 	cells.clear();
-	faces.clear();
 
 	readFileToSMt("cond.input");
 	result = solve1();
 	//result = solve2();
 	cout<<"there are "<<result<<" in result"<<endl;
-	// 4580 correct
+	// correct
+	cells.clear();
+
 	return 0;
 }
