@@ -162,7 +162,7 @@ int solve2(){
 
 int main(void){
 	int result;
-	readFileToSMt("test.input");
+	readFileToSMt("test01.input");
 	result = solve1();
 	// test должно быть 64
 	if( result != 64){

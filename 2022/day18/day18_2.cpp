@@ -136,9 +136,9 @@ int readFileToSMt(string filename){
 		string sz = line.substr(0, t1);
 		string sy = line.substr(t1 + 1, t2 - 1);
 		string sx = line.substr(t2 + 1, t3 - 1);
-		int z = 2 * stoi(sz);
-		int y = 2 * stoi(sy);
-		int x = 2 * stoi(sx);
+		int z = stoi(sz);
+		int y = stoi(sy);
+		int x = stoi(sx);
 		cells.emplace_back(cPoint(z, y, x));
 	}
 	ifstr.close();
@@ -171,23 +171,24 @@ int solve1(){
 	int acc = 0;
 	for(; !stack.empty();){
 		//4) достану и рассмотрю точку из списка
-		cPoint iter = stack.back(); 
+		cPoint iter = stack.back();
 		stack.pop_back();
 
 		//5) если точка рядом с булыжником - изменю её расстояние
 		for(int i = 0; i < 6; i++){
-			if(find(cells.begin(), cells.end(), iter + dirs[i]) != cells.end()){
+			cPoint temp = iter + dirs[i];
+			if(find(cells.begin(), cells.end(), temp) != cells.end()){
 				waterCells[iter] = 1;
 				break;
 			}
 		}
 
-		//6) если точка слишком далеко от булыжника - она больше не интересует
+		//6) если такие точки уже есть
 		if(waterCells.count(iter) == 0){
 			continue;
 		}
-		
-		if(waterCells[iter] > 2){
+		// если точка слишком далеко от булыжника - она больше не интересует
+		if(waterCells[iter] > 3){
 			continue;
 		}
 
@@ -214,21 +215,27 @@ int solve1(){
 
 int main(void){
 	int result;
-	readFileToSMt("test2.input");
-	result = solve1();
-	// test должно быть 6
-	if( result != 6){
-		cout<<"test2 failed with "<<result<<" in test"<<endl;
-		return 0;
+	string testFileName = "test01.input";
+	int testResults[] = {6, 10, 12, 12, 9*6,9+2*(8+5), 18};
+	for(int i = 1; i <= 5; i++){
+		testFileName[5] = '0' + i;
+		readFileToSMt(testFileName);
+		result = solve1();
+		// test должно быть 6
+		if( result != testResults[i - 1]){
+			cout<<testFileName<<" failed with "<<result<<" in test"<<endl;
+			return 0;
+		}
+		cells.clear();
 	}
-	cells.clear();
+	//return 2;
 
 	readFileToSMt("test.input");
 	result = solve1();
 	// test должно быть 58
 	if( result != 58){
 		cout<<"test failed with "<<result<<" in test"<<endl;
-		return 0;
+		return -1;
 	}
 	cells.clear();
 
