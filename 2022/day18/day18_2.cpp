@@ -9,7 +9,7 @@
 #include <vector>
 #include <string>
 #include <map>
-#include <list>
+#include <queue>
 #include <algorithm>
 #define ull unsigned long long
 
@@ -122,188 +122,203 @@ cPoint& operator+(cPoint lhs, const cPoint& rhs){
 	return lhs.add(rhs);
 }
 
-vector<cPoint> cells;
-map<cPoint, int> faces;
-map<cPoint, int> waterCells;
-
-int readFileToSMt(string filename){
-	string line;
-	ifstream ifstr(filename, ios::binary);
-	for(getline(ifstr, line); !ifstr.eof(); getline(ifstr, line)){
-
-		int t1 = line.find(',', 0);
-		int t2 = line.find(',', t1 + 1);
-		int t3 = line.find(',', t2 + 1);
-		string sz = line.substr(0, t1);
-		string sy = line.substr(t1 + 1, t2 - 1);
-		string sx = line.substr(t2 + 1, t3 - 1);
-		int z = stoi(sz);
-		int y = stoi(sy);
-		int x = stoi(sx);
-		cells.emplace_back(cPoint(z, y, x));
-	}
-	ifstr.close();
-	return 0;
+bool less(pair<int, cPoint> lhs,pair<int, cPoint> rhs){
+	return lhs.first < rhs.first;
 }
 
-int solve1(){
-	// формирую направления 
-	vector<cPoint> dirs;
-	dirs.push_back(cPoint( 1, 0, 0));
-	dirs.push_back(cPoint(-1, 0, 0));
-	dirs.push_back(cPoint( 0, 1, 0));
-	dirs.push_back(cPoint( 0,-1, 0));
-	dirs.push_back(cPoint( 0, 0, 1));
-	dirs.push_back(cPoint( 0, 0,-1));	
+class cSolve{
+	string nameId;
+	vector<cPoint> cells;
+	map<cPoint, int> faces;
+	map<cPoint, int> waterCells;
+	int result = -1;
+	public:
 	
-	//1) взять точку рядом с камнем
-	sort(cells.begin(), cells.end());
+	cSolve(string filename){
+		// 1) read data
+		nameId = filename;
+		string line;
+		ifstream ifstr(filename, ios::binary);
+		for(getline(ifstr, line); !ifstr.eof(); getline(ifstr, line)){
+
+			int t1 = line.find(',', 0);
+			int t2 = line.find(',', t1 + 1);
+			int t3 = line.find(',', t2 + 1);
+			string sz = line.substr(0, t1);
+			string sy = line.substr(t1 + 1, t2 - 1);
+			string sx = line.substr(t2 + 1, t3 - 1);
+			int z = stoi(sz);
+			int y = stoi(sy);
+			int x = stoi(sx);
+			cells.emplace_back(cPoint(z, y, x));
+		}
+		ifstr.close();
+	}
+
+	int solveIt(){
+		// формирую направления 
+		vector<cPoint> dirs;
+		dirs.push_back(cPoint( 1, 0, 0));
+		dirs.push_back(cPoint(-1, 0, 0));
+		dirs.push_back(cPoint( 0, 1, 0));
+		dirs.push_back(cPoint( 0,-1, 0));
+		dirs.push_back(cPoint( 0, 0, 1));
+		dirs.push_back(cPoint( 0, 0,-1));	
+	
+		//1) взять точку рядом с камнем
+		sort(cells.begin(), cells.end());
 		
-	//2) делаю мап из точек и их дальности от поверхности булыжника
+		//2) делаю мап из точек и их дальности от поверхности булыжника
 	
-	cPoint start = cells[0];
-	start += dirs[1];
-	waterCells.emplace(start, 1);
-	list<cPoint> stack;
-	stack.push_back(start);
+		cPoint start = cells[0];
+		start += dirs[1];
+		//waterCells.emplace(start, 1);
+		priority_queue<pair<int, cPoint>> stack;
+		stack.push(pair<int, cPoint>(1, start));
+		
 
-	//3) покрываю булыжник слоем воды толщиной 3 
-	// этого должно хватить для всяких поворотов
-	int acc = 0;
-	for(; !stack.empty();){
-		//4) достану и рассмотрю точку из списка
-		cPoint iter = stack.back();
-		stack.pop_back();
-
-		//5) если точка рядом с булыжником - изменю её расстояние
-		for(int i = 0; i < 6; i++){
-			cPoint temp = iter + dirs[i];
-			if(find(cells.begin(), cells.end(), temp) != cells.end()){
-				waterCells[iter] = 1;
-				break;
-			}
-		}
-
-		//6) если такие точки уже есть
-		if(waterCells.count(iter) == 0){
-			continue;
-		}
-		// если точка слишком далеко от булыжника - она больше не интересует
-		if(waterCells[iter] > 3){
-			continue;
-		}
-
-		//7) рассмотрю всех соседей
-		for(int i = 0; i < 6; i++){
+		//3) покрываю булыжник слоем воды толщиной 3 
+		// этого должно хватить для всяких поворотов
+		int acc = 0;
+		for(; !stack.empty();){
+			//4) достану и рассмотрю точку из списка
+			pair<int, cPoint> iter = stack.top();
+			stack.pop();
 			
-			//8) если сосед булыжник, то это грань, считаю её
-			if(find(cells.begin(), cells.end(), iter + dirs[i]) != cells.end()){
-				acc++;
-				continue; // автоматически не может быть ячейкой воды
+			//5) смотрю на соседей в первый раз - если точка рядом с булыжником - изменю её расстояние
+			// и попутно посчитаю поверхность.
+			for(int i = 0; i < 6; i++){
+				cPoint temp = iter.second + dirs[i];
+				if(find(cells.begin(), cells.end(), temp) != cells.end()){
+					iter.first = 1;
+				}
+			}
+			
+			//ой нет, эта точка существует и, что хуже - границы рядом с булыжником с ней уже посчитаны.
+			if(waterCells.find(iter.second) != waterCells.end() &&
+				waterCells[iter.second] == 1){
+				continue;
+			}
+			waterCells[iter.second] = iter.first;
+
+			//6) точка слишком далеко от булыжника
+			if(iter.first >= 4){
+				continue;
 			}
 
-			//8) если сосед уже в списке воды - то больше не интересна
-			// иначе добавляю в стак и буду рассматривать, 
-			if(waterCells.find(iter+dirs[i]) == waterCells.end()){
-				waterCells.emplace(iter+dirs[i], waterCells[iter] + 1);
-				stack.push_front(iter+dirs[i]);
+			//5) смотрю на соседей ещё раз - если вершина не намокла - добавляю в очередь
+			// если вершина мокрая, но индекс будет - уменьшаю индекс и в очередь. 
+			// это приведет к нахлесту, но к счастью глубина все равно не больше 4х, 
+			// так что нахлест будет конечным.
+			for(int i = 0; i < 6; i++){
+				cPoint temp = iter.second + dirs[i];
+				//пропускаю точки булыжника
+				if(find(cells.begin(), cells.end(), temp) != cells.end() ){
+					acc++;
+					continue;
+				}
+				// добавляю в стак и буду рассматривать новые точки
+				if(waterCells.find(temp) == waterCells.end() ){
+					stack.push(pair<int, cPoint>(iter.first + 1, temp));
+				}
+				// повторно добавляю в стак и буду рассматривать 
+				else if(waterCells[temp] > iter.first + 1){
+					stack.push(pair<int, cPoint>(iter.first + 1, temp));
+					waterCells[temp] = iter.first + 1;
+				}
 			}
 		}
+		result = acc;
+		return result;
 	}
 	
-	return acc;
-}
+	void printBoulder(){
+		//3) print result
+		int miny = +10000;
+		int maxy = -10000;
+		int minx = +10000;
+		int maxx = -10000;
+		int minz = +10000;
+		int maxz = -10000;
+		for(auto p:waterCells){
+			maxx = (p.first.x > maxx)? p.first.x: maxx;
+			minx = (p.first.x < minx)? p.first.x: minx;
+			maxy = (p.first.y > maxy)? p.first.y: maxy;
+			miny = (p.first.y < miny)? p.first.y: miny;
+			maxz = (p.first.z > maxz)? p.first.z: maxz;
+			minz = (p.first.z < minz)? p.first.z: minz;
+		}
 
-void printCells(string name){
-
-	int miny = +10000;
-	int maxy = -10000;
-	int minx = +10000;
-	int maxx = -10000;
-	int minz = +10000;
-	int maxz = -10000;
-	for(auto p:waterCells){
-		if(p.first.x > maxx)
-			maxx = p.first.x;
-		if(p.first.x < minx)
-			minx = p.first.x;
-		if(p.first.y > maxy)
-			maxy = p.first.y;
-		if(p.first.y < miny)
-			miny = p.first.y;
-		if(p.first.z > maxz)
-			maxz = p.first.z;
-		if(p.first.z < minz)
-			minz = p.first.z;
-	}
-
-	cout<<"****** "<<name<<" ******"<<endl;
-	cout<<"z: ["<<minz<<" "<<maxz<<"]"<<endl;
-	cout<<"y: ["<<miny<<" "<<maxy<<"]"<<endl;
-	cout<<"x: ["<<minx<<" "<<maxx<<"]"<<endl;
-	int dec = 80/(maxx-minx + 3);
-	for(int z = minz; z <= maxz; z+=dec){
-		cout<<"layers "<<z<<" to " << z + dec - 1 << " :"<<endl;
-		for(int y = miny; y <= maxy; y++){
-			for(int i = 0; i < dec; i++){
-				for(int x = minx; x <= maxx; x++){
-					cPoint temp(z + i, y, x);
-					if(waterCells.find(temp ) != waterCells.end()){
-						cout << waterCells[temp];
-					}				
-					else if(find(cells.begin(), cells.end(), temp) != cells.end()){
-						cout << "#";
+		cout<<"****** "<<nameId<<" ******"<<endl;
+		cout<<"z: ["<<minz<<" "<<maxz<<"]"<<endl;
+		cout<<"y: ["<<miny<<" "<<maxy<<"]"<<endl;
+		cout<<"x: ["<<minx<<" "<<maxx<<"]"<<endl;
+		int dec = 100/(maxx-minx + 3);
+		for(int z = minz; z <= maxz; z+=dec){
+			cout<<"layers "<<z<<" to " << z + dec - 1 << " :"<<endl;
+			for(int y = miny; y <= maxy; y++){
+				for(int i = 0; i < dec; i++){
+					for(int x = minx; x <= maxx; x++){
+						cPoint temp(z + i, y, x);
+						if(waterCells.find(temp ) != waterCells.end()){
+							cout << waterCells[temp];
+						}				
+						else if(find(cells.begin(), cells.end(), temp) != cells.end()){
+							cout << "#";
+						}
+						else{
+							cout << ".";
+						}
 					}
-					else{
-						cout << ".";
-					}
+					cout << "   ";
 				}
-				cout << "   ";
+				cout << endl;
 			}
-			cout << endl;
 		}
 	}
-}
 
+	int getResult(){
+		return result;
+	}
+};
+
+
+	
 int main(void){
 	int result;
 	string testFileName = "test01.input";
 	int testResults[] = {6, 10, 12, 12, 9*6,9+2*(8+5), 18};
 	for(int i = 1; i <= 5; i++){
 		testFileName[5] = '0' + i;
-		readFileToSMt(testFileName);
-		result = solve1();
-		printCells(testFileName);
-		// test должно быть 6
+		cSolve test(testFileName);
+		test.solveIt();
+		result = test.getResult();
+		//test.printBoulder();
+
 		if( result != testResults[i - 1]){
 			cout<<testFileName<<" failed with "<<result<<" in test"<<endl;
 			return 0;
 		}
-		cells.clear();
-		waterCells.clear();
 	}
-	// return 2;
-
-	readFileToSMt("test.input");
-	result = solve1();
-	printCells("test.input");
+	
+	cSolve test("test.input");
+	result = test.solveIt();
+	//test.printBoulder();
 	// test должно быть 58
 	if( result != 58){
 		cout<<"test failed with "<<result<<" in test"<<endl;
 		return -1;
 	}
-	cells.clear();
-	waterCells.clear();
-	// return 3;
+	
+	//return 3;
 
-	readFileToSMt("cond.input");
-	result = solve1();
-	printCells("cond.input");
+	cSolve cond("cond.input");
+	
+	result = cond.solveIt();
+	cond.printBoulder();
 	//result = solve2();
 	cout<<"there are "<<result<<" in result"<<endl;
-	// correct
-	cells.clear();
-	waterCells.clear();
+	// 2610 correct 
 
 	return 0;
 }
