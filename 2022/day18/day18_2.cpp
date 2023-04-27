@@ -124,6 +124,7 @@ cPoint& operator+(cPoint lhs, const cPoint& rhs){
 
 vector<cPoint> cells;
 map<cPoint, int> faces;
+map<cPoint, int> waterCells;
 
 int readFileToSMt(string filename){
 	string line;
@@ -159,7 +160,7 @@ int solve1(){
 	sort(cells.begin(), cells.end());
 		
 	//2) делаю мап из точек и их дальности от поверхности булыжника
-	map<cPoint, int> waterCells;
+	
 	cPoint start = cells[0];
 	start += dirs[1];
 	waterCells.emplace(start, 1);
@@ -213,6 +214,57 @@ int solve1(){
 	return acc;
 }
 
+void printCells(string name){
+
+	int miny = +10000;
+	int maxy = -10000;
+	int minx = +10000;
+	int maxx = -10000;
+	int minz = +10000;
+	int maxz = -10000;
+	for(auto p:waterCells){
+		if(p.first.x > maxx)
+			maxx = p.first.x;
+		if(p.first.x < minx)
+			minx = p.first.x;
+		if(p.first.y > maxy)
+			maxy = p.first.y;
+		if(p.first.y < miny)
+			miny = p.first.y;
+		if(p.first.z > maxz)
+			maxz = p.first.z;
+		if(p.first.z < minz)
+			minz = p.first.z;
+	}
+
+	cout<<"****** "<<name<<" ******"<<endl;
+	cout<<"z: ["<<minz<<" "<<maxz<<"]"<<endl;
+	cout<<"y: ["<<miny<<" "<<maxy<<"]"<<endl;
+	cout<<"x: ["<<minx<<" "<<maxx<<"]"<<endl;
+	int dec = 80/(maxx-minx + 3);
+	for(int z = minz; z <= maxz; z+=dec){
+		cout<<"layers "<<z<<" to " << z + dec - 1 << " :"<<endl;
+		for(int y = miny; y <= maxy; y++){
+			for(int i = 0; i < dec; i++){
+				for(int x = minx; x <= maxx; x++){
+					cPoint temp(z + i, y, x);
+					if(waterCells.find(temp ) != waterCells.end()){
+						cout << waterCells[temp];
+					}				
+					else if(find(cells.begin(), cells.end(), temp) != cells.end()){
+						cout << "#";
+					}
+					else{
+						cout << ".";
+					}
+				}
+				cout << "   ";
+			}
+			cout << endl;
+		}
+	}
+}
+
 int main(void){
 	int result;
 	string testFileName = "test01.input";
@@ -221,30 +273,37 @@ int main(void){
 		testFileName[5] = '0' + i;
 		readFileToSMt(testFileName);
 		result = solve1();
+		printCells(testFileName);
 		// test должно быть 6
 		if( result != testResults[i - 1]){
 			cout<<testFileName<<" failed with "<<result<<" in test"<<endl;
 			return 0;
 		}
 		cells.clear();
+		waterCells.clear();
 	}
-	//return 2;
+	// return 2;
 
 	readFileToSMt("test.input");
 	result = solve1();
+	printCells("test.input");
 	// test должно быть 58
 	if( result != 58){
 		cout<<"test failed with "<<result<<" in test"<<endl;
 		return -1;
 	}
 	cells.clear();
+	waterCells.clear();
+	// return 3;
 
 	readFileToSMt("cond.input");
 	result = solve1();
+	printCells("cond.input");
 	//result = solve2();
 	cout<<"there are "<<result<<" in result"<<endl;
 	// correct
 	cells.clear();
+	waterCells.clear();
 
 	return 0;
 }
