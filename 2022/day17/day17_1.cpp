@@ -9,6 +9,7 @@
 #include <vector>
 #include <string>
 #include <array>
+#include <algorithm>
 #define ull unsigned long long
 #define screenHeight 20
 #define screenWidth 20
@@ -81,23 +82,22 @@ class cFigures{
 		index %= 5;
 	}
 
-	vector<pair<int, int>>& getSprite(){
-		return sprites[index];
-	}
+	vector<pair<int, int>>& getSprite(){return sprites[index];}
+	int getIndex(){return index;}
+	int getHeight(){return heights[index];}
 
-	int getHeight(){
-		return heights[index];
-	}
 }figures;
 
 class cSolve{
 	vector<char> directions;
 	int dirIt = 0;
-	
-	const int restCounterFinish = 15; //2023	
-	
+	const int restCounterFinish = 2023; //2023	
+	const string nether = "A=======B";
+	const string etc = "|~~~~~~~|";
+	const string chasteLine = "|       |";
 	int height = 0;
-	vector<vector<char>> map;
+	int restCounter = 1;
+	vector<string> map;
 	pair<int, int> pos;	
 	vector<pair<int, int>>* currentSprite;
 	
@@ -111,6 +111,7 @@ class cSolve{
 			getline(ifstr, line);
 			copy(line.begin(), line.end(), back_inserter(directions));
 		}while(!ifstr.eof());
+		directions.pop_back(); //удалить нафиг перенос строки
 		ifstr.close();
 	}
 
@@ -128,17 +129,12 @@ class cSolve{
 			int dy = (*currentSprite)[i].first + dir.first;
 			int dx = (*currentSprite)[i].second + dir.second;
 
-			// если границы колодца не мешают
-			if(pos.second + dx < 0)
-				return false;
-			if(pos.second + dx > 6)
-				return false;			
-			if(pos.first + dy < 0)
-				return false;
-
-			//если не уперся в кучу
-			if( map[pos.first + dy][pos.second + dx] == '#'){
-				return false;
+			// если границы колодца не мешают и
+			// если не уперся в кучу уже навалившихся
+			switch(map[pos.first + dy][pos.second + dx]){
+				case ' ':
+				case '@': break;
+				default: return false;
 			}
 		}
 
@@ -155,8 +151,8 @@ class cSolve{
 	void recalcHeight(){
 		for(int i = height + 1; i < map.size(); i++){
 			bool flag = false;
-			for(int j = 0; j < 7; j++){
-				if(map[i][j] == '#'){
+			for(int j = 1; j <= 7; j++){
+				if(map[i][j] != ' '){
 					flag = true;
 					break;
 				}	
@@ -172,21 +168,22 @@ class cSolve{
 
 	int solve(){
 		//char emptyline[] = "       ";
-		for(int restCounter = 0; restCounter < restCounterFinish; restCounter++){
+		
+		map.push_back(nether);
+		for(; restCounter < restCounterFinish; restCounter++){
 			// bottom edge is three units above the highest rock
 			figures.chooseNext();
 			currentSprite = &(figures.getSprite());
-			while(map.size() < height + 3 + figures.getHeight() + 2){
-				map.push_back({' ', ' ', ' ', ' ', ' ', ' ', ' ', '\0'});
-				//map.push_back(emptyline);
-				//map[map.size() - 1];  
+			while(map.size() < height + 4 + figures.getHeight()){
+				map.push_back(chasteLine);
 			}
 			// left edge is two units away from the left wall
-			pos.second = 2; 
-			pos.first = map.size() - figures.getHeight(); 
+			pos.second = 3; 
+			pos.first = height + 4;// - figures.getHeight(); 
 			
 			paintSpriteAtPosAs('@');
 			do{
+				// print();
 				if(directions[dirIt] == '>'){
 					moveTo({0, 1});
 				}
@@ -195,9 +192,9 @@ class cSolve{
 				}
 				dirIt++;
 				dirIt %= directions.size();
-				// print();
+				// print(); 
 			}while(moveTo({-1, 0}));
-			paintSpriteAtPosAs('#');
+			paintSpriteAtPosAs('0' + restCounter%10);
 			print();
 			recalcHeight();
 		}		
@@ -209,37 +206,30 @@ class cSolve{
 	//выводит состояние колодца в данный момент времени.
 	array<string, screenHeight> screen;
 	void print(bool isFlush = false){
-		static int j = 0;
 		static int k = 0;
 		static const int kMax = (100/screenWidth); // states per line
 		// system("cls");
 		if(!isFlush){
-			screen[0] += "step " + to_string(j);
+			screen[screenHeight - 1] += "step " + to_string(restCounter);
 			
-			if(height < screenHeight - 1){
-				screen[screenHeight - 1] += "|-------|"; //╚ ═╝║
-			}
-			else
-				screen[screenHeight - 1] += "|~~~~~~~|";
-			int iter = map.size() - 1;
-			if(iter < screenHeight - 2){
-				iter = screenHeight - 2;
+			if(map.size() >= screenHeight){
+				screen[0] += etc;
 			}
 			else{
-				iter += 2;
+				screen[0] += nether;
+			}
+			int ofset = map.size() - screenHeight;
+			if(ofset < 0){
+				ofset = 0;
 			}
 			for(int i = 1; i < screenHeight - 1; i++){
-				string data(7, ' ');
-				if(iter < map.size()){
-					data = string(map[iter].data());
-				}
-				screen[i] +="|" + data + "|";
+				if(i < map.size())
+					screen[i] += map[ofset + i];
+				else screen[i] += chasteLine;
 				//метка высоты
-				if( i%10 == 9){
-					screen[i] += to_string(i + 1);
+				if( (ofset + i)%10 == 0){
+					screen[i] += to_string(ofset + i);
 				}
-				//этот указатель опускаем глубже
-				iter--;
 			}
 		}
 		else{
@@ -250,10 +240,11 @@ class cSolve{
 		}
 		k++;
 		if(k >= kMax){
-			for(int i = 0; i < screenHeight; i++){
+			for(int i = screenHeight - 1; i >=0; i--){
 				cout<<screen[i]<<endl;
 				screen[i] = "";
 			}
+			cout<<endl;
 			k = 0;
 		}
 		else{
@@ -279,11 +270,14 @@ int main(void){
 		return -1;
 	}
 	cout<<"test.input passed: "<<result<<"(3068)"<<endl;	
-	return -2;
+	// return -2;
 
 	cSolve cond("cond.input");
 	result = cond.solve();
 
 	cout<<"there are "<<result<<" in result"<<endl;
+	//3103 too low
+	//3139 too high LUL
+	//3203 too high
 	return 0;
 }
