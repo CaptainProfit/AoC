@@ -4,11 +4,15 @@
 // https://en.cppreference.com/w/cpp/string/basic_string/size
 //2147483647 - LONG_MAX
 //18446744073709551615 - ULLONG_MAX
+//       1514285714288 - 
+//		 1514285714288
+// 10091 is prime
 #include <iostream> 
 #include <fstream>
 #include <vector>
 #include <string>
 #include <array>
+#include <map>
 #include <algorithm>
 #define ull unsigned long long
 #define screenHeight 20
@@ -21,9 +25,9 @@ using my_string=u32string;
 //█ - 219
 class cFigures{
 	public:
-	int index;
-	vector<vector<pair<int, int>>> sprites;
-	vector<int> heights;
+	ull index;
+	vector<vector<pair<ull, ull>>> sprites;
+	vector<ull> heights;
 	//просто запихивает фигурки
 	cFigures(){
 		index = 4;
@@ -82,24 +86,86 @@ class cFigures{
 		index %= 5;
 	}
 
-	vector<pair<int, int>>& getSprite(){return sprites[index];}
-	int getIndex(){return index;}
-	int getHeight(){return heights[index];}
+	vector<pair<ull, ull>>& getSprite(){return sprites[index];}
+	ull getIndex(){return index;}
+	ull getHeight(){return heights[index];}
 
 }figures;
 
+class cSignatures{
+	public:
+	vector<vector<char>> a;
+	map<string, ull> theSignatures;
+
+	cSignatures(){
+		a.resize(128);
+		for(int i = 0; i < 128; i ++){
+			a[i].resize(128);
+			for(int j = 0; j < 128; j ++){
+				char c = i&j;
+				char left = c;
+				char right = c;
+				for(int k = 0 ; k < 7; k++){
+					left = j & (left<<1);
+					right = j & (right>>1);
+					c|= left|right;
+				}
+				a[i][j] = c;
+			}
+		}
+	}
+
+	char toSign(string& str){
+		char x = 0;
+		for(int i = 1; i < 8; i++){
+			if(str[i] != ' '){
+				x |= 1<<(i - 1);
+			}
+		}
+		return x;
+	}
+	
+	string makeSign(ull height, vector<string>& tetris ){
+		string s;
+		char cur = 0x7F;
+		for(ull h = height; h >= 0; h--){
+			char next = 0x7F^toSign(tetris[h]);
+			if(a[cur][next] == 0){
+				break;
+	
+			}
+			else{
+				cur = a[cur][next];
+				s+=cur;
+			}
+		}
+		return s;
+	}
+
+	bool findSign(string& s){
+		return theSignatures.find(s) != theSignatures.end();
+	}
+
+	void addSign(string& s, ull height){
+		theSignatures.emplace(s, height);
+	}
+
+} signs;
+
 class cSolve{
 	vector<char> directions;
-	int dirIt = 0;
-	const int restCounterFinish = 2023; //2023	
+	ull dirIt = 0;
+	//1_000_000_000_000 = 1E12
+	const ull restCounterFinish = 1000000000000; //2023
+	ull period = 0;
 	const string nether = "A=======B";
 	const string etc = "|~~~~~~~|";
 	const string chasteLine = "|       |";
-	int height = 0;
-	int restCounter = 1;
-	vector<string> map;
-	pair<int, int> pos;	
-	vector<pair<int, int>>* currentSprite;
+	ull height = 0;
+	ull restCounter = 1;
+	vector<string> tetris;
+	pair<ull, ull> pos;	
+	vector<pair<ull, ull>>* currentSprite;
 	
 	public:
 	//1 init from file
@@ -113,25 +179,26 @@ class cSolve{
 		}while(!ifstr.eof());
 		directions.pop_back(); //удалить нафиг перенос строки
 		ifstr.close();
+		period = directions.size()  * figures.sprites.size();
 	}
 
 	void paintSpriteAtPosAs(char c){
-		for(int i = 0; i < (*currentSprite).size(); i++){
-			int dy = (*currentSprite)[i].first;
-			int dx = (*currentSprite)[i].second;
-			map[pos.first + dy][pos.second + dx] = c;
+		for(ull i = 0; i < (*currentSprite).size(); i++){
+			ull dy = (*currentSprite)[i].first;
+			ull dx = (*currentSprite)[i].second;
+			tetris[pos.first + dy][pos.second + dx] = c;
 		}
 	}
 	// вернет false если движение продолжается
-	bool moveTo(pair<int, int> dir){
+	bool moveTo(pair<ull, ull> dir){
 		//check is move will succeed
-		for(int i = 0; i < (*currentSprite).size(); i++){
-			int dy = (*currentSprite)[i].first + dir.first;
-			int dx = (*currentSprite)[i].second + dir.second;
+		for(ull i = 0; i < (*currentSprite).size(); i++){
+			ull dy = (*currentSprite)[i].first + dir.first;
+			ull dx = (*currentSprite)[i].second + dir.second;
 
 			// если границы колодца не мешают и
 			// если не уперся в кучу уже навалившихся
-			switch(map[pos.first + dy][pos.second + dx]){
+			switch(tetris[pos.first + dy][pos.second + dx]){
 				case ' ':
 				case '@': break;
 				default: return false;
@@ -149,10 +216,10 @@ class cSolve{
 	}
 
 	void recalcHeight(){
-		for(int i = height + 1; i < map.size(); i++){
+		for(ull i = height + 1; i < tetris.size(); i++){
 			bool flag = false;
-			for(int j = 1; j <= 7; j++){
-				if(map[i][j] != ' '){
+			for(ull j = 1; j <= 7; j++){
+				if(tetris[i][j] != ' '){
 					flag = true;
 					break;
 				}	
@@ -166,16 +233,29 @@ class cSolve{
 		}
 	}
 
-	int solve(){
+	ull solve(){
 		//char emptyline[] = "       ";
 		
-		map.push_back(nether);
+		tetris.push_back(nether);
 		for(; restCounter < restCounterFinish; restCounter++){
+			
+			if(restCounter % period == 0){
+				string newSign = signs.makeSign(height, tetris);
+				bool result = signs.findSign(newSign);
+				if(!result){
+					signs.addSign(newSign, height);
+				}
+				else{
+					//bingo!
+					cout<<" there are defiuinetyle sceeses was come" <<endl;
+					break;
+				}
+			}
 			// bottom edge is three units above the highest rock
 			figures.chooseNext();
 			currentSprite = &(figures.getSprite());
-			while(map.size() < height + 4 + figures.getHeight()){
-				map.push_back(chasteLine);
+			while(tetris.size() < height + 4 + figures.getHeight()){
+				tetris.push_back(chasteLine);
 			}
 			// left edge is two units away from the left wall
 			pos.second = 3; 
@@ -197,7 +277,7 @@ class cSolve{
 			paintSpriteAtPosAs('0' + restCounter%10);
 			// print();
 			recalcHeight();
-		}		
+		}
 		// print(true);
 		currentSprite = nullptr;		
 		return height;
@@ -206,25 +286,25 @@ class cSolve{
 	//выводит состояние колодца в данный момент времени.
 	array<string, screenHeight> screen;
 	void print(bool isFlush = false){
-		static int k = 0;
-		static const int kMax = (100/screenWidth); // states per line
+		static ull k = 0;
+		static const ull kMax = (100/screenWidth); // states per line
 		// system("cls");
 		if(!isFlush){
 			screen[screenHeight - 1] += "step " + to_string(restCounter);
 			
-			if(map.size() >= screenHeight){
+			if(tetris.size() >= screenHeight){
 				screen[0] += etc;
 			}
 			else{
 				screen[0] += nether;
 			}
-			int ofset = map.size() - screenHeight;
+			ull ofset = tetris.size() - screenHeight;
 			if(ofset < 0){
 				ofset = 0;
 			}
-			for(int i = 1; i < screenHeight - 1; i++){
-				if(i < map.size())
-					screen[i] += map[ofset + i];
+			for(ull i = 1; i < screenHeight - 1; i++){
+				if(i < tetris.size())
+					screen[i] += tetris[ofset + i];
 				else screen[i] += chasteLine;
 				//метка высоты
 				if( (ofset + i)%10 == 0){
@@ -240,7 +320,7 @@ class cSolve{
 		}
 		k++;
 		if(k >= kMax){
-			for(int i = screenHeight - 1; i >=0; i--){
+			for(ull i = screenHeight - 1; i >=0; i--){
 				cout<<screen[i]<<endl;
 				screen[i] = "";
 			}
@@ -248,9 +328,9 @@ class cSolve{
 			k = 0;
 		}
 		else{
-			for(int i = 0; i < screenHeight; i++){
+			for(ull i = 0; i < screenHeight; i++){
 				string additional((k*20 - screen[i].size()), ' ');
-				// for(int j = 0; j < screen[i].size(); j++){
+				// for(ull j = 0; j < screen[i].size(); j++){
 				// 	cout<<static_cast<unsigned int>(static_cast<unsigned char>(screen[i][j]))<<" ";
 				// }
 				// cout<<endl;
@@ -261,12 +341,12 @@ class cSolve{
 };
 
 int main(void){
-	int result;
+	long long result;
 
 	cSolve test("test.input");
 	result = test.solve();
-	if(result != 3068){
-		cout<<"test.input failed with "<<result<<" in result(must be 3068)"<<endl;	
+	if(result != 1514285714288){
+		cout<<"test.input failed with "<<result<<" in result(must be 1514285714288)"<<endl;	
 		return -1;
 	}
 	cout<<"test.input passed: "<<result<<"(3068)"<<endl;	
@@ -276,9 +356,6 @@ int main(void){
 	result = cond.solve();
 
 	cout<<"there are "<<result<<" in result"<<endl;
-	//3103 too low
-	//3137 correct WHAT?!
-	//3139 too high LUL
-	//3203 too high
+	
 	return 0;
 }
