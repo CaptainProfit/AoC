@@ -15,9 +15,9 @@ using namespace std;
 
 class cMonkey{
 	string name;
-	char op;
 
 	public:
+	char op;
 	bool isValue;
 	bool isVar = false;
 	bool flag = false;
@@ -72,47 +72,37 @@ class cMonkey{
 		return false;
 	}
 
-	long long backexec(long long lhs, long long rhs, bool isLeftParent){
-		if(!isValue){
-			isValue = true;
+	long long backexec(long long &lhs, long long &rhs, long long &parent, bool ascendToLeft){
+		// if(!isValue){
+		// 	isValue = true;
+		// }
+		if(ascendToLeft){
 			switch(op){
-				case '-': 
-					if(isLeftParent){
-						value = lhs + rhs;
-					}
-					else{
-						value = rhs - lhs;
-					}
-					break;
-				case '+':
-					if(isLeftParent){
-						value = lhs - rhs;
-					}
-					else{
-						value = rhs - lhs;
-					}
-					break;
-				case '/':
-					if(isLeftParent){
-						value = lhs * rhs;
-					}
-					else{
-						value = rhs / lhs;
-					}
-					break;
-				case '*': value = lhs / rhs; 
-					if(isLeftParent){
-						value = lhs / rhs;
-					}
-					else{
-						value = rhs / lhs;
-					}
-					break;
-				case '=': return lhs == rhs; 
+				case '+': value = parent - rhs; break;
+				case '*': value = parent / rhs; break;
+				case '=': value = rhs; 			break; 
+				case '-': value = parent + rhs; break;
+				case '/': value = parent * rhs; break;
 			}
 		}
+		else{
+			switch(op){
+				case '+': value = parent - lhs; break;
+				case '*': value = parent / lhs; break;
+				case '=': value = lhs; 			break;
+				case '-': value = lhs - parent; break;
+				case '/': value = lhs / parent; break;
+			}
+		}		
 		return false;
 	}	
+};
+
+const map<char, char> invOps = {
+	{'+','-'},
+	{'*','/'},
+	{'-','+'},
+	{'/','*'}
 };
 
 class cSolve{
@@ -172,18 +162,64 @@ class cSolve{
 			}
 			varQueue.pop();
 		}
+		monkeys["root"].parent = "root";
 		return nodeCounter;
+	}
+
+	long long solve2(){
+		// альтернативный подход - перестроить дерево.
+		// ничуть не проще, но 
+		string name = "humn";
+		while(name != "root"){
+			string parent = monkeys[name].parent;
+			string gparent = monkeys[parent].parent;
+			string lhs = monkeys[name].lhsName;
+			string rhs = monkeys[name].rhsName;
+
+			monkeys[name].hsName = parent;
+			monkeys[parent].parent = name;
+			monkeys[name].op = invOps[monkeys[name].op]; // но это не точно.
+
+			name = monkeys[gparent].hsName;
+		}
+		
+		// а теперь как и было.
+		stack<string> varQueue;
+		varQueue.push(monkeys["humn"].hsName);
+		while(!varQueue.empty()){
+			string name = varQueue.top();
+			if(monkeys[name].isValue){
+				varQueue.pop();
+			}
+			else{
+				string lhs = monkeys[name].lhsName;
+				string rhs = monkeys[name].rhsName;
+				if(!monkeys[lhs].isValue){
+					varQueue.push(lhs);
+					continue;
+				}
+				if(!monkeys[rhs].isValue){
+					varQueue.push(rhs);
+					continue;
+				}
+				monkeys[name].exec(monkeys[lhs].value, monkeys[rhs].value);
+				cout<<name<<" = "<<monkeys[name].value<<endl;
+			}
+		}
+		cout<<"root calculated: "<<monkeys["humn"].isValue<<endl;
+		return monkeys["humn"].value;
 	}
 
 	long long solve(){
 		
 		stack<string> varQueue;
 		// помечаю ветку с переменной
-		for(string x = "humn"; !monkeys[x].parent.empty(); x = monkeys[x].parent){
+		for(string x = "humn"; x != "root" ; x = monkeys[x].parent){
 			varQueue.push(x);	
 			monkeys[x].isVar = true;
 		}
-		varQueue.push("root");	
+		varQueue.push("root");
+		monkeys["root"].isVar = true;
 
 		while(!varQueue.empty()){
 			string name = varQueue.top();
@@ -192,21 +228,16 @@ class cSolve{
 			string parent = monkeys[name].parent;
 			if(monkeys[name].isValue ){
 				varQueue.pop();
-				if(name == "root"){
-					if(monkeys[rhs].isVar )
-						monkeys[name].value = monkeys[lhs].value;
-					else 
-						monkeys[name].value = monkeys[rhs].value;						
-					monkeys[name].isValue = true;
-				}
 			}
 			else{
-
+				
+				// если левая ветка не посчитана и не относится к переменной
 				if( !monkeys[lhs].isValue && !monkeys[lhs].isVar ){
 					varQueue.push(lhs);
 					continue;
 				}
 
+				// если правая ветка не посчитана и не относится к переменной
 				if( !monkeys[rhs].isValue && !monkeys[rhs].isVar ){
 					varQueue.push(rhs);
 					continue;
@@ -218,22 +249,16 @@ class cSolve{
 				else{
 					// 
 					varQueue.pop();
-					if(monkeys[rhs].isVar ){
-						long long res = monkeys[name].backexec(monkeys[lhs].value, monkeys[parent].value, true);
-						monkeys[rhs].value = res;
-						monkeys[name].isValue = true;
-					}
-					else{// monkeys[lhs].isVar
-						long long res = monkeys[name].backexec(monkeys[parent].value, monkeys[rhs].value, false);
-						monkeys[lhs].value = res;
-						monkeys[name].isValue = true;
-					}
+					monkeys[name].backexec(monkeys[lhs].value, 
+					  						monkeys[rhs].value, 
+											monkeys[parent].value, 
+											monkeys[lhs].isVar);
 				}
 				cout<<name<<" = "<<monkeys[name].value<<endl;
 			}
 		}
-		cout<<"humn calculated: "<<monkeys["humn"].isValue<<endl;
-		return monkeys["humn"].value;
+		// cout<<"humn calculated: "<<monkeys[monkeys["humn"].parent].isValue<<endl;
+		return monkeys[monkeys["humn"].parent].value;
 	}
 };
 
@@ -253,6 +278,11 @@ int main(void){
 	}
 	cout<<"test passed"<<endl;
 	result = cond.solve();
-	cout<<"there are "<<result<<" in result"<<endl;
+	if(result != 3343167719435){
+		cout<<"cond failed "<<result<<"(3343167719435)"<<endl;
+		return -1;
+	}
+	cout<<"cond passed"<<endl;	
 	return 0;
+	// 3343167719435 correct!
 }
