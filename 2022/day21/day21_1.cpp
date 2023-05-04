@@ -26,8 +26,8 @@ class cMonkey{
 		cout<<"why i am here?"<<endl;
 	}
 	cMonkey(string& line){
-		// слово1: слово2 опер слово3
-		// слово1: число
+		// СЃР»РѕРІРѕ1: СЃР»РѕРІРѕ2 РѕРїРµСЂ СЃР»РѕРІРѕ3
+		// СЃР»РѕРІРѕ1: С‡РёСЃР»Рѕ
 		int i1 = line.find(':');
 		name = line.substr(0, i1);
 		char x = line[i1 +2];
@@ -53,10 +53,10 @@ class cMonkey{
 		if(!isValue){
 			isValue = true;
 			switch(op){
-				case '-': value = lhs + rhs; break;
+				case '-': value = lhs - rhs; break;
 				case '+': value = lhs + rhs; break;
-				case '*': value = lhs + rhs; break;
-				case '/': value = lhs + rhs; break;
+				case '*': value = lhs * rhs; break;
+				case '/': value = lhs / rhs; break;
 			}
 		}
 	}
@@ -119,5 +119,6 @@ int main(void){
 	cSolve cond("cond.input");
 	result = cond.solve();
 	cout<<"there are "<<result<<" in result"<<endl;
+	//168502451381566 correct
 	return 0;
 }
