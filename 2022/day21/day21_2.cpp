@@ -70,6 +70,21 @@ class cMonkey{
 				case '\\':value = rhs /lhs; break;
 				case '=': value = rhs; 
 			}
+
+			//check overloading
+			bool over = false;
+			switch(op){
+				case '+': value - rhs == lhs; break;
+				case '*': value / rhs == lhs; break;
+				case '-': value + rhs == lhs; break;
+				case '~': value + lhs == rhs; break;
+				case '/': value * rhs == lhs; break;
+				case '\\':value * lhs == rhs; break;
+				case '=': value == rhs; 
+			}
+			if(over){
+				cout<<"overloading takes place!"<<endl;
+			}
 		}
 		return false;
 	}
@@ -98,20 +113,37 @@ class cMonkey{
 		}		
 		return false;
 	}	
+
+	string toString(){
+		
+		if(isValue){
+			return name + ": " + to_string(value);
+		}
+		else{
+			return name + ": " + rhsName + " " + op + " " + lhsName;
+		}
+	}
+
 };
 
-map<char, char> invOpsR = {
+ostream& operator<<(std::ostream& os, cMonkey& obj){
+	os<<obj.toString();
+	return os;
+}
+
+map<char, char> invOpsL = {
 	{'+','-'},
 	{'*','/'},
 	{'-','+'},
 	{'/','*'},
 	{'=','='}
 };
-map<char, char> invOpsL = {
+
+map<char, char> invOpsR = {
 	{'+','~'},
 	{'*','\\'},
-	{'-','+'},
-	{'/','*'},
+	{'-','-'},
+	{'/','/'},
 	{'=','='}
 };
 
@@ -180,38 +212,44 @@ class cSolve{
 		for(string x = "humn"; x != "root" ; x = monkeys[x].parent){
 			monkeys[x].isVar = true;
 		}
+		ofstream ofstr("solve22.dump");
 		monkeys["root"].isVar = true;
 		// альтернативный подход - выломать ветку в обратную сторону
 		string name = "humn";
 		monkeys[name].op = '=';
 		monkeys[name].isValue = false;
+		string gparent = name;
 		while(name != "root"){
 			string parent = monkeys[name].parent;
 			string lhs = monkeys[name].lhsName;
 			string rhs = monkeys[name].rhsName;
-			// заменяю  на 
-			if(lhs != "" && monkeys[lhs].isVar){
-				monkeys[name].lhsName = parent;
-			}
-			else{
-				monkeys[name].rhsName = parent;
-				if(name == "humn"){
-					monkeys[name].lhsName = parent;
-				}
-			}
-			char oldOp = monkeys[name].op;
+			char oldOp = monkeys[parent].op;
 			char newOp;
+			// заменяю  на 				
 			if(monkeys[parent].lhsName == name){
 				//если у предка слева
+				// parent = name op other
+				// lhs(x) = name(parent) invLop rhs
+				// name = lhs(x) op rhs ->
+				monkeys[name].lhsName = parent;
+				monkeys[name].rhsName = monkeys[parent].rhsName;
 				newOp = invOpsL[oldOp];
 			}
-			else{
+			else{//if( monkeys[parent].rhsName == name)
 				//если у предка справа
+				// parent = other op name
+				// name = lhs op rhs(x) ->
+				// lhs(x) = lhs invRop name(parent)
+				monkeys[name].rhsName = parent;
+				monkeys[name].lhsName = monkeys[parent].lhsName;
 				newOp = invOpsR[oldOp];
 			}
+			monkeys[name].parent = gparent;
 			monkeys[name].op = newOp;
+
+			cout<< monkeys[name]<<endl;
+			gparent = name;
 			name = parent;
-			//теряю инфу про родителя но да и не нужна она
 		}
 
 		if(monkeys[monkeys["root"].lhsName].isVar){
@@ -220,13 +258,15 @@ class cSolve{
 		else{
 			monkeys["root"].rhsName = monkeys["root"].lhsName;
 		}
-		
+		cout<< monkeys["root"]<<endl;
+
 		// а теперь как и было.
 		stack<string> varQueue;
-		varQueue.push(monkeys["humn"].lhsName);
+		varQueue.push("humn");
 		while(!varQueue.empty()){
 			string name = varQueue.top();
 			if(monkeys[name].isValue){
+				ofstr << name << " = " <<  monkeys[name].value << endl;
 				varQueue.pop();
 			}
 			else{
@@ -241,16 +281,20 @@ class cSolve{
 					continue;
 				}
 				monkeys[name].exec(monkeys[lhs].value, monkeys[rhs].value);
+				ofstr << name << " = " << lhs << " " << monkeys[name].op << " " <<  rhs << endl;
+				ofstr << "\t" << monkeys[name].value << " = " << monkeys[lhs].value << " " << monkeys[name].op << " " <<  monkeys[rhs].value << endl;
 				cout<<name<<" = "<<monkeys[name].value<<endl;
 			}
 		}
-		cout<<"root calculated: "<<monkeys["humn"].isValue<<endl;
+		ofstr.close();		
+		cout<<"humn calculated: "<<monkeys["humn"].isValue<<endl;
 		return monkeys["humn"].value;
 	}
 	
-	long long solve(){
+	long long solve1(){
 		
 		stack<string> varQueue;
+		ofstream ofstr("solve11.dump");
 		// помечаю ветку с переменной
 		for(string x = "humn"; x != "root" ; x = monkeys[x].parent){
 			varQueue.push(x);	
@@ -265,6 +309,7 @@ class cSolve{
 			string rhs = monkeys[name].rhsName;
 			string parent = monkeys[name].parent;
 			if(monkeys[name].isValue ){
+				//ofstr << name << " = " <<  monkeys[name].value << endl;
 				varQueue.pop();
 			}
 			else{
@@ -283,18 +328,33 @@ class cSolve{
 
 				if( !monkeys[name].isVar){
 					monkeys[name].exec(monkeys[lhs].value, monkeys[rhs].value);
+					ofstr << name << " = " << lhs << " " << monkeys[name].op << " " <<  rhs << endl;
+					ofstr << "\t" << monkeys[name].value << " = " << monkeys[lhs].value << " " << monkeys[name].op << " " <<  monkeys[rhs].value	 << endl;
+					ofstr << name << " = " << monkeys[name].value << endl;
 				}
 				else{
 					// 
 					varQueue.pop();
 					monkeys[name].backexec(monkeys[lhs].value, 
-					  						monkeys[rhs].value, 
+											monkeys[rhs].value, 
 											monkeys[parent].value, 
 											monkeys[lhs].isVar);
+					if(monkeys[lhs].isVar){
+						ofstr << lhs << " = " << name << " " << invOpsL[monkeys[name].op] << " " <<  rhs << endl;
+						ofstr << "\t" << monkeys[name].value << " = " << monkeys[parent].value << " " << invOpsL[monkeys[name].op] << " " <<  monkeys[rhs].value	 << endl;
+						ofstr << lhs << " = " << monkeys[name].value << endl;
+					}
+					else{
+						ofstr << rhs << " = " << lhs << " " << invOpsR[monkeys[name].op] << " " <<  name << endl;
+						ofstr << "\t" << monkeys[name].value << " = " << monkeys[lhs].value << " " << invOpsR[monkeys[name].op] << " " <<  monkeys[parent].value	 << endl;
+						ofstr << rhs << " = " << monkeys[name].value << endl;
+					}
 				}
+				
 				cout<<name<<" = "<<monkeys[name].value<<endl;
 			}
 		}
+		ofstr.close();
 		// cout<<"humn calculated: "<<monkeys[monkeys["humn"].parent].isValue<<endl;
 		return monkeys[monkeys["humn"].parent].value;
 	}
@@ -302,20 +362,26 @@ class cSolve{
 
 int main(void){
 	long long result;
-	cSolve test("test.input");
-	cSolve cond("cond.input");
+	cSolve test1("test.input");
+	cSolve cond1("cond.input");
+	cSolve test2("test.input");
+	cSolve cond2("cond.input");
 	// bingo! операции и правда строят бинарные деревья, чуть легче.
 	// значит по простому - считаю выражение в одной из веток и поднимаю его вверх.
 	// 
-	cout<<test.countVars()<<endl;
-	cout<<cond.countVars()<<endl;
-	result = test.solve2();
+	cout<<test1.countVars()<<endl;
+	cout<<cond1.countVars()<<endl;
+	cout<<test2.countVars()<<endl;
+	cout<<cond2.countVars()<<endl;
+	result = test1.solve1();
+	result = test2.solve2();
 	if(result != 301){
 		cout<<"test failed "<<result<<"(152)"<<endl;
 		return -1;
 	}
 	cout<<"test passed"<<endl;
-	result = cond.solve2();
+	result = cond1.solve1();
+	result = cond2.solve2();
 	if(result != 3343167719435){
 		cout<<"cond failed "<<result<<"(3343167719435)"<<endl;
 		return -1;
