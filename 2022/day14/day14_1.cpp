@@ -7,21 +7,27 @@
 #include <vector>
 #include <string>
 #include <iterator>
+#include <stack>
 #define ull unsigned long long
-#define CENTERX 500
 using namespace std;
 string conf = "test";
 
-typedef enum{eleft = 0, eright = 1, eup = 2, edown = 3} eDir;
 class cPoint{
-	int b;
-	int c;
 	public:
-	int z;
 	int x;
 	int y;
 	
-	cPoint(const int &nx, const int &ny){
+	cPoint(){
+		x = 0;
+		y = 0;
+	}
+	
+	cPoint(const cPoint& tmp ){
+		x = tmp.x;
+		y = tmp.y;
+	}
+	
+	cPoint(const int& nx, const int& ny){
 		x = nx;
 		y = ny;
 	}
@@ -29,198 +35,286 @@ class cPoint{
 	cPoint(const string& s){
 		int d = s.find(',');
 		string sx = s.substr(0, d);
-		string sy = s.substr(d+1, s.length());
+		string sy = s.substr(d + 1, s.length());
 		x = stoi(s.substr(0, d));
-		y = stoi(s.substr(d+1, s.length()));
+		y = stoi(s.substr(d + 1, s.length()));
 	}
 
-	void operator>>(const eDir& dir);
+	cPoint& operator-=(const cPoint& lhs){
+		x -= lhs.x;
+		y -= lhs.y;
+		return *this;
+	}
 
-	eDir operator-(cPoint& start){
-		if(start.x > this->x){
-			return eleft;
-		} 
-		if(start.x < this->x){
-			return eright;
+	cPoint& operator+=(const cPoint& lhs){
+		x += lhs.x;
+		y += lhs.y;
+		return *this;
+	}
+
+	void normalize(){
+		if(x != 0){
+			x = x / abs(x);
 		}
-		if(start.y > this->y){
-			return eup;
-		} 
-		return edown;
+		if(y != 0){
+			y = y / abs(y);
+		}
 	}
-
 };
 
-bool cPoint::operator!=(cPoint& a, cPoint& b){
-		return (a.x != b.x) || (a.y != b.y);
-	}
-
-cPoint dirs[4]={{-1,0},{1,0},{0,-1},{0,1}};
-
-cPoint& cPoint::operator+=(eDir dir){
-	this->x += dirs[dir].x;
-	this->y += dirs[dir].y;
-	return *this;
+bool operator!=(const cPoint& lhs, const cPoint& rhs){
+	return (lhs.x != rhs.x) || (lhs.y != rhs.y);
 }
 
-void cPoint::operator>>(const eDir& dir){
-	this->x+= dirs[dir].x;
-	this->y+= dirs[dir].y;
+bool operator==(const cPoint& lhs, const cPoint& rhs){
+	return (lhs.x == rhs.x) && (lhs.y == rhs.y);
 }
 
-template<class T>
-class c2vec{
-	int ofs;
-	vector<T> leftv;
-	T center;
-	vector<T> rightv;
-	int min = CENTERX;
-	int max = CENTERX;
+cPoint& operator-(const cPoint& lhs, const cPoint& rhs){
+	cPoint res(lhs);
+	return res -= rhs;
+}
+
+cPoint& operator+(const cPoint& lhs, const cPoint& rhs){
+	cPoint res(lhs);
+	return res +=rhs;
+}
+
+class cTable{
+	cPoint ofs;
+	vector<vector<char>> leftv;
+	vector<char> centerv;
+	vector<vector<char>> rightv;
+	cPoint pointer;
+
+	int minX = 0;
+	int maxX = 0;
+	int maxY = 0;
+	bool isInitialized = false;
 	public:
-	void setOfs(int i){
-		ofs = i;
-	}
-
-	T& operator[](int i){
-		if(i > CENTERX)
-			return rightv[i - 1];
-		if(i < CENTERX)
-			return leftv[i - 1];
-		return center;		
-	}
 	
-	c2vec(int min, int max, T c){
-		leftv.resize(min, c);
-		center = c;
-		rightv.resize(max, c);
+	cTable(const cPoint& startofs):ofs(startofs){
+		minX = startofs.x;
+		maxX = startofs.x;
+		maxY = startofs.y + 1;
+		// ofs = startofs;
+		pointer = startofs;
+		isInitialized = true;
 	}
 
-	ostream& operator<<(ostream& os){
-		for(int i = -leftv.size() ; i < rightv.size() ; i++)
-			os<<this[i];
+	char& operator[](cPoint z){
+		if( z.x < ofs.x )
+			return leftv[ofs.x - z.x - 1][z.y];
+		if( z.x > ofs.x )
+			return rightv[z.x - ofs.x - 1][z.y];
+		return centerv[z.y];		
+	}
+
+	ostream& printTo(ostream& os){
+		for(int j = 0; j < maxY; j++){
+			for(int i = minX ; i <= maxX ; i++){
+				os << (*this)[cPoint(i, j)];
+			}
+			os << endl;		
+		}
 		return os;
 	}
 
-	void resize(int minx, int maxx, T def){
-		center = def;
-		leftv.resize(CENTERX - minx, def);
-		rightv.resize(maxx - CENTERX, def);
+	void place(const cPoint& newPlace){
+		pointer = newPlace;
+	}
+	
+	void dotTo(const cPoint& newPlace, char pen){
+		(*this)[newPlace] = pen;
+	}
+
+	void lineTo(const cPoint& newPlace, char pen){
+		cPoint dir = newPlace - pointer;
+		dir.normalize();
+		for(cPoint x = pointer; x != newPlace; x +=dir){
+			(*this)[x] = pen;
+		}
+		(*this)[newPlace] = pen;
+		pointer = newPlace;
+	}
+
+
+	bool checkBorders(const cPoint& z){
+		if(z.y >= maxY)
+			return false;
+		if(z.x > maxX)
+			return false;
+		if(z.x < minX)
+			return false;
+		return true;
+	}
+
+	void convexTo(const cPoint &c){
+		if(!isInitialized){
+			isInitialized = true;
+			maxY = c.y  + 1;
+			maxX = c.x;
+			minX = c.x;
+			ofs = c;
+		}
+
+		bool isUpdate = false;
+		if(c.y >= maxY){
+			isUpdate = true;
+			maxY = c.y  + 1;
+		}
+		
+		if(c.x > maxX){
+			isUpdate = true;
+			maxX = c.x;
+		}
+
+		if(c.x < minX){
+			isUpdate = true;
+			minX = c.x;
+		}
+
+		if(isUpdate){
+			resize();
+		}
+	}
+
+	void resize(){
+		leftv.resize(ofs.x - minX);
+		rightv.resize(maxX - ofs.x);
+		centerv.resize(maxY, ' ');
+		for(int i = 0; i < leftv.size(); i++){
+			leftv[i].resize(maxY, ' ');
+		}
+		for(int i = 0; i < rightv.size(); i++){
+			rightv[i].resize(maxY, ' ');
+		}
 	}
 };
 
-cPoint src(500, 0);
-
-class cMap{
-	vector<c2vec<char>> map;
-	bool isPen;
-	char pen;
-	cPoint penPos;
-	int minx;
-	int maxx;
-	public:
-	
-	void startPen(cPoint&n,  const char& symb){
-		isPen = true;
-		penPos = n;		
-		pen = symb;
-		map[penPos.y][penPos.x] = pen;
-	}
-
-	void continuePen(cPoint n ){
-		eDir dir = n - penPos;
-		while(penPos != n){
-			penPos += dir;
-			map[penPos.y][penPos.x] = pen;
-		}
-		map[penPos.y][penPos.x] = pen;
-	}
-
-	void endPen(){
-		isPen = false;
-	}
-
-	void convex(cPoint& n){
-		bool resize = false;
-		if(map.size()>= n.y){
-			map.resize(n.y + 1);
-			resize = true;
-		}
-		if(minx < n.x){
-			minx = n.x;
-			resize = true;
-		}
-		if(maxx < n.x){
-			maxx = n.x;
-			resize = true;
-		}
-		for(int i = 0; i < map.size(); i ++){
-			map[i].resize(minx, maxx, '.');
-		}
-	}
-
-	c2vec<char>& operator[](int p){
-		return map[p];
-	}
-
-	int size(){
-		return map.size();
-	}
-} map;
-
-int readFileToSMt(){	
-	string line;
-	ifstream ifstr(conf+".input", ios::binary);
-	//vector<cPath> paths;
-	int maxy = 0;
-	int minx = 500;
-	int maxx = 500;
-	while(1){
-		getline(ifstr, line);
-		int caret = 0;
-		int interval = line.find('-') - caret;
-		cPoint a(line.substr(caret, interval - 1));
-		map.startPen(a, '#');
-		map[a.y][a.x] = 's';
-
-		while(1){			
-			caret = interval + 2;//skip ->
-			interval = line.find('-', caret) - caret;
-			if(caret >= line.length() ||
-				caret == -1){
-					break;
-			}
-			cPoint b(line.substr(caret, interval - 1));
-			map[b.y][b.x] = 'e';
-			map.continuePen(b);			
-			a = b;
-		}
-		map.endPen();
-		if(ifstr.eof()){
-			ifstr.close();
-			break;
-		}
-	}
-	//postprocessings:
-	return 0;
+ostream& operator<<(ostream& os, cTable& tab){
+	tab.printTo(os);
+	return os;
 }
 
-void solve(){	
-
-}
-
-void writeFileSmt(){
+class cSolve{
 	int result = 0;
-	ofstream ofstr(conf+".output", ios::binary);
-	for(int i = 0 ; i < map.size(); i++){
-		ofstr<<map[i]<<endl;
+	//int trashx = 500, trashy = 0;
+	cPoint src;
+	cTable map;
+	string outName;
+	void print(){
+		static bool firstTime = true;
+		ofstream ofstr;
+		if(firstTime)
+			ofstr.open(outName + ".output", ios::binary);
+		else
+			ofstr.open(outName + ".output", ios::binary);
+		firstTime = false;
+		ofstr << map << endl;
+		ofstr << "sand points stopped: " << result << endl;
+		ofstr.close();
 	}
-	ofstr<<"there are "<<result<<" in result"<<endl;
-	ofstr.close();
-}
+
+	public:
+	cSolve(const string& name, const cPoint& start):map(cPoint(start)){
+		src = start;
+		map.convexTo(src);
+		outName = name.substr(0, name.find('.'));		
+		ifstream ifstr(name, ios::binary);
+		//vector<cPath> paths;
+		
+		string line;
+		for(getline(ifstr, line); !ifstr.eof(); getline(ifstr, line)){
+			int interval = 0;
+			interval = line.find('-');
+			string sub = line.substr(0, interval - 1);
+			map.convexTo(cPoint(sub));
+			//cout << sub << endl;
+			
+			map.place(cPoint(sub));
+			do{
+				int prevInt = line.find('>', interval) + 2;
+				interval = line.find('-', prevInt) ;
+				sub = line.substr(prevInt, interval - prevInt - 1);
+				//cout << sub << endl;
+				map.convexTo(cPoint(sub));
+				map.lineTo(cPoint(sub), '#');
+			}while(interval != -1);
+		}
+		ifstr.close();
+		map.dotTo(src, '+');
+		print();
+	}
+	
+	int  solve(){
+		//simulate time!
+		stack<cPoint> jet;
+		cPoint dirs[3] = {
+			{ 0, 1},
+			{-1, 1},
+			{ 1, 1}
+		};
+		jet.push(src);
+		bool isFlawn = true;
+		while(!jet.empty()){
+			bool isRestart = false;
+			cPoint iter = jet.top();
+			if(!isFlawn){
+				jet.pop();
+				map[iter] = '~';
+				continue;
+			}
+			// чекаю 
+			for(int i = 0; i < 3; i++){
+				if(map.checkBorders(iter + dirs[i])){
+					if(map[iter + dirs[i]] == ' '){
+						jet.push(iter+dirs[i]);
+						isRestart = true;
+						break;
+					}
+				}
+				else{
+					isFlawn = false;
+					map[iter] = '~';
+					jet.pop();
+					isRestart = true;
+					break;
+				}
+			}
+			if(isRestart){
+				continue;
+			}
+
+			map[iter] = '*';
+			result++;
+			for(int i = 0; i < 3; i++){
+				if(map[iter + dirs[i]] == '~'){
+					map[iter] = '~';
+					result--;
+					break;
+				}
+			}
+			jet.pop();
+		}
+		print();
+		return result;
+	}
+};
 
 int main(void){
-	readFileToSMt();	
-	solve();
-	writeFileSmt();
+	int result;
+	cPoint startPoint(500, 0);
+	cSolve test("test.input", startPoint);
+	result = test.solve();
+	if(result != 24){
+		cout << "test failed (24):" << result << endl;
+	}
+	cout << "test passed" << endl;
+
+	cSolve cond("cond.input", startPoint);
+	result = cond.solve();
+	cout << "result: " << result << endl;
+	//655 correct!
 	return 0;
 }
