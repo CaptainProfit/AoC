@@ -91,6 +91,7 @@ class cFigures{
 class cSolve{
 	vector<char> directions;
 	int dirIt = 0;
+	ull moveCounter = 0;
 	const int restCounterFinish = 2023; //2023	
 	const string nether = "A=======B";
 	const string etc = "|~~~~~~~|";
@@ -187,11 +188,15 @@ class cSolve{
 				if(directions[dirIt] == '>'){
 					moveTo({0, 1});
 				}
-				if(directions[dirIt] == '<'){
+				else if(directions[dirIt] == '<'){
 					moveTo({0, -1});
+				} else {
+					cout << " error: directions not correct" <<endl;
 				}
+
 				dirIt++;
 				dirIt %= directions.size();
+				moveCounter+=2;
 				// print(); 
 			}while(moveTo({-1, 0}));
 			paintSpriteAtPosAs('0' + restCounter%10);
@@ -199,7 +204,8 @@ class cSolve{
 			recalcHeight();
 		}		
 		// print(true);
-		currentSprite = nullptr;		
+		currentSprite = nullptr;
+		cout << " moves done: " << moveCounter << endl;
 		return height;
 	}
 
@@ -277,8 +283,8 @@ int main(void){
 
 	cout<<"there are "<<result<<" in result"<<endl;
 	//3103 too low
-	//3137 correct WHAT?!
 	//3139 too high LUL
 	//3203 too high
+	//3137 correct WHAT?!
 	return 0;
 }

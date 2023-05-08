@@ -13,6 +13,7 @@
 #include <string>
 #include <array>
 #include <map>
+#include <tuple>
 #include <algorithm>
 #define ull unsigned long long
 #define screenHeight 20
@@ -95,7 +96,10 @@ class cFigures{
 class cSignatures{
 	public:
 	vector<vector<char>> a;
-	map<string, ull> theSignatures;
+	// нужно хранить высоту
+	// шаг
+	// 
+	map<pair<string, ull>, pair<ull, ull>> theSignatures;
 
 	cSignatures(){
 		a.resize(128);
@@ -142,17 +146,32 @@ class cSignatures{
 		return s;
 	}
 
-	bool findSign(string& s){
-		return theSignatures.find(s) != theSignatures.end();
+	bool findSign(string& s, ull step){
+		return theSignatures.find(pair<string, ull>(s, step)) != theSignatures.end();
 	}
 
-	void addSign(string& s, ull height){
-		theSignatures.emplace(s, height);
+	pair<ull, ull> getSign(string& s, ull step){
+		return theSignatures[pair<string, ull>(s, step)];
 	}
 
-} signs;
+	void addSign(string& s, ull step, ull height, ull counter){
+		theSignatures.emplace(pair<string, ull> (s, step),  pair<ull, ull>(height, counter));
+	}
+
+	ull size(){return theSignatures.size();}
+
+	void print(){
+		for(auto it: theSignatures){
+			cout << "\t{" << it.first.first;
+			cout.flush();
+			cout << ", " << it.first.second << "}: ";
+			cout << "{" << it.second.first << ", " << it.second.second << "}" << endl;
+		}
+	}
+};
 
 class cSolve{
+	cSignatures signs;
 	vector<char> directions;
 	ull dirIt = 0;
 	//1_000_000_000_000 = 1E12
@@ -235,20 +254,35 @@ class cSolve{
 
 	ull solve(){
 		//char emptyline[] = "       ";
-		
+		bool isPeriodExploited = false;
+		ull additionalHeight = 0;
 		tetris.push_back(nether);
 		for(; restCounter < restCounterFinish; restCounter++){
 			
-			if(restCounter % period == 0){
+			// проверяю когда повторяется цикл по фигуркам
+			if(restCounter % period == 0 && !isPeriodExploited){
 				string newSign = signs.makeSign(height, tetris);
-				bool result = signs.findSign(newSign);
+				bool result = signs.findSign(newSign, dirIt);
 				if(!result){
-					signs.addSign(newSign, height);
+					signs.addSign(newSign, dirIt, height, restCounter);
 				}
 				else{
+					isPeriodExploited = true;
 					//bingo!
-					cout<<" there are defiuinetyle sceeses was come" <<endl;
-					break;
+					// cout << "match! " << endl;
+					// cout << "string: " << newSign << endl;
+					// cout.flush();
+					// cout << "iter: " << dirIt << endl;
+					// cout << "size of signature: " << signs.size() << endl;
+					// cout.flush();
+					// signs.print();
+					pair<ull, ull> Nhei1(signs.getSign(newSign, dirIt));
+					ull diffN = restCounter - Nhei1.second;
+					ull diffHeight = height - Nhei1.first;
+					ull t = (restCounterFinish - restCounter)/diffN;
+					restCounter += t*diffN;
+					additionalHeight = t*diffHeight;
+					// break;
 				}
 			}
 			// bottom edge is three units above the highest rock
@@ -280,7 +314,7 @@ class cSolve{
 		}
 		// print(true);
 		currentSprite = nullptr;		
-		return height;
+		return height + additionalHeight;
 	}
 
 	//выводит состояние колодца в данный момент времени.
@@ -356,6 +390,12 @@ int main(void){
 	result = cond.solve();
 
 	cout<<"there are "<<result<<" in result"<<endl;
-	
+	// 1564705882326 too low!
+	// 1564705892326 too high
+	// 1564705882426 too high
+	// 1564705882328 nope
+	// 1564705882327 correct.
+	// 1564705882329 
+	// 1564705882330 nope
 	return 0;
 }
