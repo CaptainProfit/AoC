@@ -10,58 +10,53 @@
 #define ull unsigned long long
 
 using namespace std;
-template class cTree<int>;
+template class cContainer<int>;
 
-int readFileToSMt(cTree<int>& storage){
-	string line;
-	ifstream ifstr("testInsert.input", ios::binary);
-	while(1){
-		getline(ifstr, line);
-		if(ifstr.eof()){
-			ifstr.close();
-			break;
+class cSolve{
+	cContainer storage;
+	public:
+	cSolve(const string& name){
+		string line;
+		ifstream ifstr(name, ios::binary);
+		for(getline(ifstr, line); !ifstr.eof(); getline(ifstr, line)){
+			storage.push_back(stoi(line));
 		}
-		storage.push_back(stoi(line));
-	}	
-	return 0;
-}
-
-int solve(cTree<int>& storage){
-	
-	int d = storage.sizef();
-	int z = 0;
-	//формирую очередь указателей на объекты внутри стуктуры,
-	// которые привязаны не к положению в структуре, а к положению
-	// изначальному. таково условие задачи.
-	vector<cTree<int>*> pointers(d);
-	for(int i = 0; i < d; i++){
-		pointers[i] = &(storage[i]);
+		ifstr.close();
 	}
 
-	for(int i = 0; i < d; i++){
-		//вычислить где, что и куда надо переставить
-		int oldIndex = pointers[i]->getIndex();
-		int value = storage[oldIndex].getValue();
-		int newIndex = (i + value + d) % d;
-		//переставить значение на новое место.
-		storage.remove(oldIndex);		
-		storage.insert(newIndex, value);
+	void solve(cContainer<int>& storage){
+		int d = storage.sizef();
+		storage.print();
+		for(int i = 0; i < d; i++){
+			
+			storage.move(i);
+			storage.print();
+		}
 	}
 
-	//математическая формула из условия задачи
-	int id1 = (z + 1000)%d;
-	int id2 = (z + 2000)%d;
-	int id3 = (z + 3000)%d;
-	return storage[id1].getValue() + 
-			storage[id2].getValue() +
-		    storage[id3].getValue();
+	int mix(){
+		//математическая формула из условия задачи
+		int zid = storage.find(0);
+		int d = storage.sizef();
+		int id1 = (zid + 1000)%d;
+		int id2 = (zid + 2000)%d;
+		int id3 = (zid + 3000)%d;
+		return storage[id1].getValue() + 
+				storage[id2].getValue() +
+				storage[id3].getValue();
+	}
 }
 
-int main(void){
-	cTree<int> storage;
+int main(void){	
 	int result;
-	readFileToSMt(storage);	
-	result = solve(storage);
-	cout<<"there are "<<result<<" in result"<<endl;
+	cSolve test("test.input");
+	test.solve();
+	result = test.mix();
+	
+	if(result != 3){
+		cout << "test failed (3):" << result <<endl;
+		return -2;
+	}
+	cout<<"test passed "<< result << endl;
 	return 0;
 }

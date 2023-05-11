@@ -1,7 +1,7 @@
 //[UTF-8 en/ru]
 #include "orderedTree.hpp"
 using namespace std;
-template class cTree<int>;
+// template class cContainer<int>;
 int rotateCnt = 0;
 /************************************************************
 * @group группа функций поворотов дерева
@@ -11,16 +11,16 @@ int rotateCnt = 0;
 ************************************************************/
 
 // корень падает, слева приподнимается
-template<>
-void cTree<int>::rotateLeft(){
+//template<>
+void cContainer::cTreeNode::rotateLeft(){
 	rotateCnt++;
 	//1) X->Y to X<-Y
-	cTree* X = this;
-	cTree* parent = X->parent;
-	cTree* Y = X->right;
-	//cTree* subtree1 = X->left;
-	cTree* subtree23 = Y->left;
-	//cTree* subtree4 = Y->right;	
+	cTreeNode* X = this;
+	cTreeNode* parent = X->parent;
+	cTreeNode* Y = X->right;
+	//cTreeNode* subtree1 = X->left;
+	cTreeNode* subtree23 = Y->left;
+	//cTreeNode* subtree4 = Y->right;	
 
 	//2) переключение предка
 	if(parent != X){
@@ -44,16 +44,16 @@ void cTree<int>::rotateLeft(){
 }
 
 // корень падает, справа приподнимается
-template<>
-void cTree<int>::rotateRight(){
+//template<>
+void cContainer::cTreeNode::rotateRight(){
 	//1) X<-Y to X->Y
 	rotateCnt++;
-	cTree* Y = this;
-	cTree* parent = Y->parent;
-	cTree* X = Y->left;
+	cTreeNode* Y = this;
+	cTreeNode* parent = Y->parent;
+	cTreeNode* X = Y->left;
 	//cTree* subtree1 = X->left;
-	cTree* subtree23 = X->right;
-	//cTree* subtree4 = Y->right;
+	cTreeNode* subtree23 = X->right;
+	//cTreeNode* subtree4 = Y->right;
 
 	//2) переключение предка
 	if(parent != Y){
@@ -77,23 +77,22 @@ void cTree<int>::rotateRight(){
 }
 
 // корень падает, слева внук подскакивает
-template<>
-void cTree<int>::rotateLeftDouble(){
+
+void cContainer::cTreeNode::rotateLeftDouble(){
 	// X->Y-<Z to X<-Z->Y
-	cTree* Y = left;
-	cTree* X = this;
-	//cTree* Z = Y->right;
+	cTreeNode* Y = left;
+	cTreeNode* X = this;
+	//cTreeNode* Z = Y->right;
 	Y->rotateRight();
 	X->rotateLeft();
 }
 
 // корень падает, справа внук подскакивает
-template<>
-void cTree<int>::rotateRightDouble(){
+void cContainer::cTreeNode::rotateRightDouble(){
 	// X->Y-<Z to X<-Z->Y
-	cTree* Y = this;
-	cTree* X = right;		
-	//cTree* Z = X->left;
+	cTreeNode* Y = this;
+	cTreeNode* X = right;		
+	//cTreeNode* Z = X->left;
 	X->rotateLeft();
 	Y->rotateRight();
 }

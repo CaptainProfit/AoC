@@ -1,7 +1,7 @@
 //[UTF-8 en/ru]
 #include "orderedTree.hpp"
 using namespace std;
-template class cTree<int>;
+template class cContainer<int>;
 
 /************************************************************
 * @group группа функций восстановления инвариантов
@@ -12,7 +12,7 @@ template class cTree<int>;
 
 // вычисляет инварианты и запоминает в вершине
 template<>
-void cTree<int>::calculateInvariant(){
+void cContainer<int>::calculateInvariant(){
 	int leftH = 0, rightH = 0, leftSize = 0, rightSize = 0;
 	if(left != nullptr){
 		leftH = left->height;
@@ -31,7 +31,7 @@ void cTree<int>::calculateInvariant(){
 // 0 ветви сбалансированы
 // 1 если левая ветвь слишком большая
 template<>
-int cTree<int>::checkBalance(){
+int cContainer<int>::checkBalance(){
 	int leftH = 0, rightH = 0;
 	if(left != nullptr){
 		leftH = left->height;
@@ -44,12 +44,12 @@ int cTree<int>::checkBalance(){
 
 //восстанавливает сбалансированость
 template<>
-void cTree<int>::restoreInvariants(){
+void cContainer<int>::restoreInvariants(){
 	// высоты по правилам АВЛ
 	// размеры - сначала вдоль АВЛ, потом до корня
 	if(isEmpty())
 		return;
-	for(cTree* it = this;; it = it->parent){
+	for(cContainer* it = this;; it = it->parent){
 		it->calculateInvariant();
 		int condition = it->checkBalance();
 		if(condition <= -2){

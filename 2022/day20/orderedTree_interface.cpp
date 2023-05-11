@@ -5,29 +5,18 @@
 ************************************************************/
 
 using namespace std;
-template class cTree<int>;
-
-template<>
-cTree<int>::cTree(int newData){
-	element = newData;
-	height = 0; // высота листа
-	size = 1; // размер листа, то есть содержит только свой элемент
-	left = nullptr;
-	right = nullptr;
-	parent = nullptr;
-	root = nullptr;
-}
+typedef int T;
+//template class cContainer<int>;
 
 // возвращает ссылку на элемент с данным индексом
-template<>	
-cTree<int>& cTree<int>::operator[](int index){
+
+cTreeNode* cContainer::operator[](int index){	
 	
-	
-	for(cTree* it = root; ; it != nullptr && it->size > 0 && index > 0; ){
+	for(cTreeNode* it = root; ; it != nullptr && it->size() > 0 && index > 0; ){
 		
 		int leftSize = 0;
 		if(it->left != nullptr){
-			leftSize = it->left->size;
+			leftSize = it->left->size();
 		}
 
 		// 1) искомая вершина в левом поддереве
@@ -37,10 +26,10 @@ cTree<int>& cTree<int>::operator[](int index){
 		}
 		// 2) сейчас стоим в искомой вершине
 		if(index == leftSize){
-			return *it;
+			return it;
 		}
 		// 3) искомая вершина в правом поддереве
-		if(right != nullptr){		
+		if(it->right != nullptr){		
 			index -= leftSize + 1;
 			it = it->right;
 			continue;
@@ -48,42 +37,23 @@ cTree<int>& cTree<int>::operator[](int index){
 	}
 	
 	//4) TODO exception чтото пошло не так.
-	return *this;
+	return root;
 }	
 
-template<>
-int cTree<int>::getIndex(){
-	int leftSize = 0;
-	for(cTree* it = root; ; it = it->parent){
-		if(this->left != nullptr){
-			leftSize += this->left->size;
-		}
-		if(it->isRoot()){
-			break;
-		}
-	}
-	return leftSize;		
-}
-
-template<>
-void cTree<int>::insert(int index, int value){
+//template<>
+void cContainer::insert(int index, const T& value){
 	//1) структура была пуста. новый элемент теперь корень 
 	// и значит он сам себе папа
-	if(isEmpty()){
-		element = value;
-		parent = this;
-		restoreInvariants();
-		root = this;
-		return;
+	
+	if(isEmpty() ){
+		root = new cTreeNode;
+		root->setValue(value);
 	}
-
-	//2) создать элемент
-	cTree* newElement = new cTree(value);
 	
 	//3) найти куда его вставить
 	
 	int tmp = (*this)[0].element;
-	cTree* it = &((*this)[index]);
+	cContainer* it = &((*this)[index]);
  	if(it->right == nullptr){
 		it->right = newElement;
 	}
@@ -99,48 +69,40 @@ void cTree<int>::insert(int index, int value){
 }
 
 // template<typename T>
-// void cTree<T>::push_back(T value){
+// void cContainer<T>::push_back(T value){
 // 	insert(size- 1, value);
 // }
 
-template<>
-void cTree<int>::remove(int index){
-	//1) остался только корень
-	if(size == 1){
-		parent = nullptr;
-		return;
-	}
-
-	//2) найти кого удаляю
-	cTree* marked = &((*this)[index]);
-	//3) пусть он всплывет в лист
+//template<>
+void cContainer::remove(int index){
 	
-	// if(marked->right == nullptr){
-	// 	if(marked->parent->left == marked){
-	// 		marked->parent->left = marked->left;
-	// 	}
-	// 	else{
-	// 		marked->parent->right = marked->left;
-	// 	}
-	// }
-	// else
-	{
-		cTree* it = marked;
-		if(it->right != nullptr){
-			it = it->right;
-		}
-		for(; it->left != nullptr; it = it->left){			
-		}
-		//меняю местами
-		swap(marked->parent, it->parent);
-		swap(marked->left, it->left);
-		swap(marked->right, it->right);
-		if(!marked->isLeaf()){
-			swap(marked->right->parent, marked->parent);
-			swap(marked->right->left, marked->left);
-			swap(marked->right->right, marked->right);
-			//it = it->right;
-		}
+	//2) найти кого удаляю
+	cTreeNode* mark = (*root)[index];
+	
+	//3) если удаляю лист - ничего не делаю.
+	// если удаляю и нет левого потомка, но есть правый - меняю местами с правым.
+	// если удаляю и есть левый потомок - проверяю у него правого потомка.
+	// 		если есть правый - меняю с правым.
+	// 		если нет правого, но есть левый - 
+
+	if(mark->left != nullptr || mark->right != nullptr){
+		cTreeNode* it = mark;
+
+		...if(it->right != nullptr){
+		...	it = it->right;
+		...}
+		...for(; it->left != nullptr; it = it->left){			
+		...}
+		...//меняю местами
+		...swap(marked->parent, it->parent);
+		...swap(marked->left, it->left);
+		...swap(marked->right, it->right);
+		...if(!marked->isLeaf()){
+		...	swap(marked->right->parent, marked->parent);
+		...	swap(marked->right->left, marked->left);
+		...	swap(marked->right->right, marked->right);
+		...	//it = it->right;
+		...}
 		
 	}
 
