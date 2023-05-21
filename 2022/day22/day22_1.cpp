@@ -6,7 +6,7 @@
 #include <fstream>
 #include <vector>
 #include <string>
-#include <list>
+#include <map>
 #define ull unsigned long long
 
 using namespace std;
@@ -28,19 +28,20 @@ const cPoint directions[] = {
 
 class cSolve{
 	vector<pair<char, int>> moves;
-	vector<string> map;
+	vector<string> surface;
 	string border;
 	string name;
 	int x, y;
+	map<pair<int, int>, pair<int, int>> ports;
 	void printMap(ostream& iout = cout){
 		if(border == ""){
-			border.resize(map[0].size() + 2, '=');
+			border.resize(surface[0].size() + 2, '=');
 		}
 
 		iout << "map:" << endl;
 		iout << border << endl;
-		for(int i = 0; i < map.size(); i++){
-			iout << '|' << map[i] << '|' << endl;
+		for(int i = 0; i < surface.size(); i++){
+			iout << '|' << surface[i] << '|' << endl;
 		}
 		iout << border << endl;
 	}
@@ -70,26 +71,20 @@ class cSolve{
 				break;
 			case 'M': 
 				for(int i = 0; i < move.second; i++){
-					int newx = x, newy = y;
+					int newx = x + directions[dirIt].x, newy = y + directions[dirIt].y;
+					pair<int ,int> src(newy, newx);
+					if(ports.find(src) != ports.end()){
+						pair<int ,int> dest = ports[src];
+						newy = dest.first;
+						newx = dest.second;
+					}
 					//1) если зашли за край
-					do{
-						newy += directions[dirIt].y;
-						newx += directions[dirIt].x;
-						newy += map.size();
-						newy %= map.size();
-						newx += map[0].size();
-						newx %= map[0].size();
-						//2) если не в пределах карты. 
-						// TODO: оптимизировать кешированием. завести мапу с краями и переходами.
-					}while(map[newy][newx] == ' ' 
-						|| map[newy][newx] == '\r' 
-						|| map[newy][newx] == '\n');
-
+					
 					//3) если не наткнулись на камень - шаг вперёд.
-					if(map[newy][newx] != '#'){
+					if(surface[newy][newx] != '#'){
 						x = newx;
 						y = newy;
-						map[y][x] = directions[dirIt].c;
+						surface[y][x] = directions[dirIt].c;
 					}
 					else{
 						break;
@@ -100,10 +95,72 @@ class cSolve{
 		}
 		dirIt += 4;
 		dirIt %= 4;
-		map[y][x] = directions[dirIt].c;
+		surface[y][x] = directions[dirIt].c;
 		return 0;
 	}
 
+	int horizFind(int xr, char c, int i0 = 0){
+		int i = i0;
+		for(; i < surface.size(); i++){
+			if(surface[i][xr] == c){
+				return i;
+			}
+		}
+		return i;
+	}
+	void calculatePorts(){
+		//1) горизонтальные телепорты.
+		int x1 = surface[0].length()/2, x2 = surface[0].length()/2;
+		for(int yr = 0; yr < surface.size(); yr++){
+			if(surface[yr][x1] == ' ' &&
+				surface[yr][x1 + 1] != ' '){
+				int x3 = surface[yr].find('.');
+				int x4 = surface[yr].find('#');
+				if(x3 == -1 && x4 == -1);
+				else if(x3 == -1){
+					x1 = x4;					
+				}
+				else if(x4){
+					x1 = x3;
+				}
+				else {
+					x1 = min(x3, x4);
+				}
+			}
+
+			if(surface[yr][x2 - 1] != ' ' &&
+				surface[yr][x2] == ' '){
+				x2 = surface[yr].find(' ', x1);
+			}
+
+			pair<int, int> a1(yr, x1), a2(yr, x2);
+			ports.emplace(a1, a2);
+			ports.emplace(a2, a1);
+		}
+		
+		//2) горизонтальные телепорты. 
+		int y1 = surface.size()/2, y2 = surface.size()/2;
+		for(int xr = 0; xr < surface[0].length(); xr++){
+			if(surface[y1][xr] == ' ' &&
+				surface[y1 + 1][xr] != ' '){
+				int y3 = horizFind(xr, '.');
+				int y4 = horizFind(xr, '#');
+				int y5 = min(y3, y4);
+				if(y5 == surface.size()){
+					continue;
+				}
+				y1 = y5;
+			}
+
+			if(surface[y2 - 1][xr] != ' ' &&
+				surface[y2][xr] == ' '){
+					y2 = horizFind(xr, ' ', y1);
+				}
+			pair<int, int> a1(y1, xr), a2(y2, xr);
+			ports.emplace(a1, a2);
+			ports.emplace(a2, a1);
+		}
+	}
 	public:
 	//LRM
 	cSolve(const string& name){
@@ -111,11 +168,12 @@ class cSolve{
 		ifstream ifstr(name, ios::binary);
 		this->name = name.substr(0, name.find('.'));
 		int maxWidth = 0;
+		surface.push_back(" ");
 		for(getline(ifstr, line); !ifstr.eof(); getline(ifstr, line)){
 			if(line.find('R') == -1 && line.find('L') == -1){
 				// карта
 				if( line != ""){
-					map.push_back(line);
+					surface.push_back(" " + line + " ");
 					if(maxWidth < line.length()){
 						maxWidth = line.length();
 					}
@@ -164,14 +222,16 @@ class cSolve{
 			}
 		}
 		ifstr.close();
-		for(int i = 0; i < map.size(); i++){
-			map[i].resize(maxWidth, ' ');
-			int j = map[i].find('\r');
+		maxWidth ++;
+		for(int i = 0; i < surface.size(); i++){
+			surface[i].resize(maxWidth, ' ');
+			int j = surface[i].find('\r');
 			while(j != -1){
-				map[i][j] = ' ';
-				j = map[i].find('\r', j);
+				surface[i][j] = ' ';
+				j = surface[i].find('\r', j);
 			}
 		}
+		calculatePorts();
 		//printMap();
 		//printMoves();
 	}
@@ -180,8 +240,8 @@ class cSolve{
 		//1) установить стартовую локацию.
 		
 		y = 0;
-		x = map[0].find('.');
-		map[y][x] = 's';
+		x = surface[0].find('.');
+		surface[y][x] = 's';
 		//printMap();
 		for(int i = 0; i < moves.size(); i++){
 			ofstream ofstr(name + to_string(i) + ".output", ios::binary);
@@ -212,7 +272,11 @@ int main(void){
 	cSolve cond("cond.input");
 	cond.solve();
 	result = cond.answer();
-	cout << "result "<< result << endl;
+	if( result != 123046){
+		cout << "cond failed(123046): " << result << endl;
+		return -2;
+	}
+	cout << "cond passed" << endl;
 	// 20562 too low
 	// 96342 too low
 	// 123046 correct
