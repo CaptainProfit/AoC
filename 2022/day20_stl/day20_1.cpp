@@ -15,6 +15,8 @@ int cntl = 0;
 int cntr = 0;
 int cntdl = 0;
 int cntdr = 0;
+int cntdel = 0;
+int cntins = 0;
 using namespace std;
 class cTreeNode{
 	cTreeNode *left, *right;
@@ -210,6 +212,7 @@ class cTreeNode{
 	}
 
 	void remove(cTreeNode* oldEl){
+		cntdel++;
 		cTreeNode* par = oldEl->parent;
 		cTreeNode* it = nullptr;
 		//1) если хотя бы одного ребенка нет
@@ -226,6 +229,9 @@ class cTreeNode{
 			else if(par->right == oldEl){
 				par->right = it;
 			}
+			else{
+				assert(0);
+			}
 			if(it != nullptr){
 				it->parent = par;
 			}
@@ -235,6 +241,7 @@ class cTreeNode{
 			oldEl->parent = nullptr;
 			oldEl->size = -1;
 			oldEl->h = -1;
+			par->refreshNode();
 			par->restoreBalance();
 			return;
 		}
@@ -269,17 +276,27 @@ class cTreeNode{
 				assert(0);
 			}
 		}
-		swap(branch->parent, 	oldEl->parent	);
-		swap(branch->left, 		oldEl->left		);
-		swap(branch->right, 	oldEl->right	);
-		swap(branch->h, 		oldEl->h		);
-		swap(branch->size, 		oldEl->size		);
+		branch->parent = par;
+		oldEl->parent = branchpar;
+		cTreeNode *tmp = branch->left;
+		branch->left = oldEl->left;
+		oldEl->left	=tmp;
+		tmp = branch->right;
+		branch->right = oldEl->right;
+		oldEl->right = tmp;
+		int tmp2 = branch->h;
+		branch->h = oldEl->h;
+		oldEl->h = tmp2;
+		tmp2 = branch->size;
+		branch->size = oldEl->size;
+		oldEl->size = tmp2;
 		
 		//и ещё раз!
 		remove(oldEl);
 	}
 
 	void insertAfter(int id, cTreeNode* newEl){
+		cntins++;
 		cTreeNode* it = (*this)[id];
 		if(it->right == nullptr){
 			it->right = newEl;			
