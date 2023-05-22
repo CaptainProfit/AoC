@@ -6,11 +6,15 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <stack>
 #include <map>
 #include <cassert>
 #include <algorithm>
 #define ull unsigned long long
-
+int cntl = 0;
+int cntr = 0;
+int cntdl = 0;
+int cntdr = 0;
 using namespace std;
 class cTreeNode{
 	cTreeNode *left, *right;
@@ -19,6 +23,7 @@ class cTreeNode{
 	int value;
 
 	void rotateLeft(void){
+		cntl++;
 		//1) X->Y to X<-Y
 		cTreeNode* X = this;
 		cTreeNode* parent = X->parent;
@@ -28,27 +33,34 @@ class cTreeNode{
 		//cTreeNode* subtree4 = Y->right;	
 
 		//2) переключение предка
-		if(parent != X){
+		if(parent != nullptr){
 			if(parent->left == X){
 				parent->left = Y;
 			}
-			else{
+			else if(parent->right == X){
 				parent->right = Y;
 			}
+			else{
+				assert(0);
+			}
 		}
-		else{
-			//корень
-			parent = Y;
+		
+		if(subtree23 != nullptr){
+			subtree23->parent = X;
 		}
 
 		//3) поворот
 		Y->parent = parent;
+		X->parent = Y;
 		Y->left = X;
-		X->parent = Y;	
+		//X->left - same
 		X->right = subtree23;
+		//Y->right - same
+		
 	}
 
 	void rotateRight(void){
+		cntr++;
 		//1) X<-Y to X->Y
 		cTreeNode* Y = this;
 		cTreeNode* parent = Y->parent;
@@ -58,17 +70,20 @@ class cTreeNode{
 		//cTreeNode* subtree4 = Y->right;
 
 		//2) переключение предка
-		if(parent != Y){
+		if(parent != nullptr){
 			if(parent->left == Y){
 				parent->left = X;
 			}
-			else{
+			else if(parent->right == Y){
 				parent->right = X;
 			}
+			else{
+				assert(0);
+			}
 		}
-		else{
-			//корень
-			parent = X;
+
+		if(subtree23 != nullptr){
+			subtree23->parent = Y;
 		}
 
 		//3) поворот	
@@ -79,8 +94,9 @@ class cTreeNode{
 	}
 
 	void rotateLeftDouble(void){
+		cntdl++;
 		// X->Y-<Z to X<-Z->Y
-		cTreeNode* Y = left;
+		cTreeNode* Y = right;
 		cTreeNode* X = this;
 		//cTreeNode* Z = Y->right;
 		Y->rotateRight();
@@ -88,9 +104,10 @@ class cTreeNode{
 	}
 
 	void rotateRightDouble(void){
+		cntdr++;
 		// X->Y-<Z to X<-Z->Y
 		cTreeNode* Y = this;
-		cTreeNode* X = right;		
+		cTreeNode* X = left;		
 		//cTreeNode* Z = X->left;
 		X->rotateLeft();
 		Y->rotateRight();
@@ -120,47 +137,50 @@ class cTreeNode{
 		}
 		return result;
 	}
+
+	void refreshNode(void){
+		if(this == nullptr){
+			return;
+		}
+		size = getSizeI();
+		h = 1 + max(left->getH(), right->getH());
+	}
+
 	void restoreBalance(void){
 		// leafs to root
 		if(this == nullptr){
 			return;
 		}
 		int diff = left->getH() - right->getH();
-		if(diff > 2){
+		if(diff >= 2){
 			if(left->left->getH() >= left->right->getH() ){
 				rotateRight();
 			}
 			else{
-				rotateRightDouble();
+				left->rotateLeft();
+				left->left->refreshNode();
+				rotateRight();
 			}
 		}
-		if(diff < -2){
+		if(diff <= -2){
+			//left.h < right.h
 			if(right->left->getH() <= right->right->getH()){
+				//rl.h <= rr.h
 				rotateLeft();
 			}
 			else{
-				rotateLeftDouble();
+				//rl.h > rr.h
+				right->rotateRight();
+				right->right->refreshNode();
+				rotateLeft();
 			}
 		}
-
-		size = getSizeI();
-		h = 1 + min(left->getH(), right->getH());
+		
+		refreshNode();
 		parent->restoreBalance();
 		//assert(0);
 	}
-
-	void downToLeaf(void){
-		cTreeNode* it = this->left;
-		while(it->right != nullptr){
-			it = it->right;
-		}
-		swap(it->left, this->left);
-		swap(it->right, this->right);
-		swap(it->parent, this->parent);
-		swap(it->h, this->h);
-		swap(it->size, this->size);
-	}
-
+	
 	public:	
 	cTreeNode* parent;
 
@@ -173,35 +193,90 @@ class cTreeNode{
 		right = nullptr;
 	}
 
+	bool isCorrect(cTreeNode* myPar = nullptr){
+		if(this == nullptr){
+			return true;
+		}
+		if(parent != myPar){
+			return false;
+		}
+		if(size != 1 + left->getSize() + right->getSize()){
+			return false;
+		}
+		if( h > 1+ max(left->getH(), right->getH())){
+			return false;
+		}
+		return left->isCorrect(this) && right->isCorrect(this);
+	}
+
 	void remove(cTreeNode* oldEl){
-		// если есть обе ребенки 
-		if(oldEl->left != nullptr && oldEl->right != nullptr){			
-			//есть оба ребенка.
-			oldEl->downToLeaf();
-			remove(oldEl);
+		cTreeNode* par = oldEl->parent;
+		cTreeNode* it = nullptr;
+		//1) если хотя бы одного ребенка нет
+		if(oldEl->left == nullptr || oldEl->right == nullptr){
+			if(oldEl->left != nullptr){
+				it = oldEl->left;
+			}
+			else if(oldEl->right != nullptr){
+				it = oldEl->right;
+			}
+			if(par->left == oldEl){
+				par->left = it;
+			}
+			else if(par->right == oldEl){
+				par->right = it;
+			}
+			if(it != nullptr){
+				it->parent = par;
+			}
+
+			oldEl->parent = nullptr;
+			oldEl->left = nullptr;
+			oldEl->parent = nullptr;
+			oldEl->size = -1;
+			oldEl->h = -1;
+			par->restoreBalance();
+			return;
 		}
+
+		//2) если оба ребенка - надо найти чтото пустоватое и свапнуть туда.
 		cTreeNode* branch = oldEl->left;
-		if(branch == nullptr){
-			branch = oldEl->right;
+		while(branch->right != nullptr){
+			branch = branch->right;
 		}
-		cTreeNode* tmp = oldEl->parent;
-		oldEl->left = nullptr;
-		oldEl->right = nullptr;
-		oldEl->parent = nullptr;
-		if(tmp != nullptr){
-			if(tmp->left == oldEl){
-				tmp->left = branch;
+		cTreeNode* branchpar = branch->parent;
+		
+		if(par != nullptr){
+			if(par->left == oldEl){
+				par->left = branch;
 			}
-			if(tmp->right == oldEl){
-				tmp->right = branch;
+			else if(par->right == oldEl){
+				par->right = branch;
 			}
-			if(branch != nullptr){
-				branch->parent = tmp;
+			else {
+				assert(0);
 			}
 		}
-		h = -1;
-		size = -1;
-		tmp->restoreBalance();
+
+		if(branchpar != nullptr){
+			if(branchpar->left == branch){
+				branchpar->left = oldEl;
+			}
+			else if(branchpar->right == branch){
+				branchpar->right = oldEl;
+			}
+			else {
+				assert(0);
+			}
+		}
+		swap(branch->parent, 	oldEl->parent	);
+		swap(branch->left, 		oldEl->left		);
+		swap(branch->right, 	oldEl->right	);
+		swap(branch->h, 		oldEl->h		);
+		swap(branch->size, 		oldEl->size		);
+		
+		//и ещё раз!
+		remove(oldEl);
 	}
 
 	void insertAfter(int id, cTreeNode* newEl){
@@ -236,17 +311,25 @@ class cTreeNode{
 	}
 
 	int getId(void){
-		if(parent == nullptr){
-			return 0;
+		stack<cTreeNode*> que;
+		que.push(this);
+		while(que.top()->parent != nullptr){
+			que.push(que.top()->parent);
 		}
-		if(parent->left == this){
-			return left->size;
+		int id = 0;
+		while(!que.empty()){
+			cTreeNode* it = que.top();
+			que.pop();
+			if(que.empty()){
+				id += it->left->getSize();
+			}
+			else{
+				if(it->right == que.top()){
+					id += it->left->getSize() + 1;
+				}
+			}
 		}
-		if(parent->right == this){
-			return left->size + parent->getId();
-		}		
-		assert(0);
-		return -1;
+		return id;
 	}
 
 	int getValue(void){
@@ -260,11 +343,37 @@ class cTreeNode{
 
 	void print(void){
 		if(this == nullptr){
+			cout << ".";
 			return;
 		}
+		cout << "[";
 		left->print();
 		cout << " " << value;
 		right->print();
+		cout << "]";
+	}
+	void printH(void){
+		if(this == nullptr){
+			cout << ".";
+			return;
+		}
+		cout << "[";
+		left->printH();
+		cout << " " << h;
+		right->printH();
+		cout << "]";
+	}
+	
+	void printSize(void){
+		if(this == nullptr){
+			cout << ".";
+			return;
+		}
+		cout << "[";
+		left->printSize();
+		cout << " " << size;
+		right->printSize();
+		cout << "]";
 	}
 };
 
@@ -274,27 +383,42 @@ class cSolve{
 	cTreeNode* root;
 	int size;
 
+	void restoreRoot(void){
+		while(root->parent != nullptr){
+			root = root->parent;
+		}
+	}
+
 	void move(int i){
 		cTreeNode* tmp = &storage[i];
 		int oldId = tmp->getId();
-		int newId = oldId + tmp->getValue();
-		
+		int d = tmp->getValue();
+		d %= size - 1;
+		d += size - 2;
+		d %= size - 1;
+		int newId = oldId + d;
+		newId %= size - 1;
 		root->remove(tmp);
-		while(root->parent != nullptr)
-			root = root->parent;
+		restoreRoot();
+		cout << "delete: "; 
 		root->print();
+		cout << endl << "\t";
+		root->printH();
+		cout << endl << "\t";
+		root->printSize();
 		cout << endl;
-
+		assert(root->isCorrect());
+		//root->print();
 		root->insertAfter(newId, tmp);
-		while(root->parent != nullptr)
-			root = root->parent;
+		restoreRoot();
+		//assert(root->isCorrect());
 	}
 	
 	public:
 	cSolve(const string& name){
 		string line;
 		ifstream ifstr(name, ios::binary);
-		int size = 0;
+		size = 0;
 		for(getline(ifstr, line); !ifstr.eof(); getline(ifstr, line)){
 			int value = stoi(line);
 			storage.push_back(value);
@@ -304,18 +428,30 @@ class cSolve{
 		root = &storage[0];
 		for(int i = 1; i < size; i++){
 			root->insertAfter(i - 1, &storage[i]);
+			restoreRoot();
+			assert(root->isCorrect());
 		}
 		ifstr.close();
 	}
 
 	void solve(void){
 		int d = storage.size();
+		cout << "start: "; 
 		root->print();
+		cout << endl << "\t";
+		root->printH();
+		cout << endl << "\t";
+		root->printSize();
 		cout << endl;
-		for(int i=0; i<d; i++){
+		assert(root->isCorrect());
+		for(int i = 0; i<d; i++){
 			move(i);
-			cout << "move " << i << ":"; 
+			cout << "move " << i + 1 << ":"; 
 			root->print();
+			cout << endl << "\t";
+			root->printH();
+			cout << endl << "\t";
+			root->printSize();
 			cout << endl;
 		}
 	}
@@ -343,6 +479,14 @@ int main(void){
 		cout << "test failed (3):" << result <<endl;
 		return -2;
 	}
-	cout<<"test passed "<< result << endl;
+
+	cSolve cond("test.input");
+	cond.solve();
+	result = cond.mix();
+	if(result != 7153){
+		cout << "cond failed (7153):" << result <<endl;
+		return -2;
+	}
+	cout<<"cond passed "<< result << endl;
 	return 0;
 }
