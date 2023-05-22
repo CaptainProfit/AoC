@@ -10,7 +10,7 @@
 #define ull unsigned long long
 
 using namespace std;
-template class cContainer<int>;
+//template class cContainer<int>;
 
 class cSolve{
 	cContainer storage;
@@ -24,7 +24,7 @@ class cSolve{
 		ifstr.close();
 	}
 
-	void solve(cContainer<int>& storage){
+	void solve(){
 		int d = storage.sizef();
 		storage.print();
 		for(int i = 0; i < d; i++){
