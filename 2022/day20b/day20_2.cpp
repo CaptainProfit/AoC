@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <chrono>
 #define ll long long
 
 using namespace std;
@@ -101,6 +102,7 @@ class cSolve{
 
 int main(void){	
 	ll result;
+	const auto tstart = chrono::steady_clock::now();
 	cSolve test("test.input");
 	test.solve();
 	result = test.mix();
@@ -113,9 +115,15 @@ int main(void){
 
 	cSolve cond("cond.input");
 	result = cond.solve();
+	if(result != 6146976244822){
+		cout << "cond failed (6146976244822):" << result <<endl;
+		return -2;
+	}
 	cout << "result:" << result << endl;
-	cout << "(6146976244822)" << endl;
+	const auto tend = chrono::steady_clock::now();
+	const auto interval = std::chrono::duration_cast<std::chrono::microseconds>(tend - tstart);
+	std::cout << "time passed: " << std::chrono::microseconds(interval).count() << "us" << std::endl;
 	// 6146976244822 correct
-	
+	// 5761051us
 	return 0;
 }

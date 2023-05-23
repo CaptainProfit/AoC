@@ -14,7 +14,7 @@
 #include <ctime>
 #include <iomanip>
 
-#define ull unsigned long long
+#define ll long long
 using namespace std;
 #define NDEBUG
 
@@ -32,7 +32,7 @@ class cTreeNode{
 	cTreeNode *left, *right;
 	int h;
 	int size;
-	int value;
+	ll value;
 
 	void rotateLeft(void){
 		cntl++;
@@ -209,7 +209,7 @@ class cTreeNode{
 	public:	
 	cTreeNode* parent;
 
-	cTreeNode(int value){
+	cTreeNode(ll value){
 		size = 1;
 		h = 1;
 		this->value = value;
@@ -387,11 +387,11 @@ class cTreeNode{
 		return id;
 	}
 
-	int getValue(void){
+	ll getValue(void){
 		return value;
 	}
 
-	int getValue(int i ){
+	ll getValue(int i ){
 		// assert(0);
 		return getValue();
 	}
@@ -442,19 +442,20 @@ class cTreeNode{
 };
 
 class cSolve{
+	const ll decrKey = 811589153;
 	vector<cTreeNode> storage;
-	map<int, int> ordByVal; // orderByValue[value] = index of value in values;
+	map<ll, int> ordByVal; // orderByValue[value] = index of value in storage;
 	cTreeNode* root;
 	int size;
 
 	void move(int i){
 		cTreeNode* tmp = &storage[i];
 		int oldId = tmp->getId();
-		int d = tmp->getValue();
+		ll d = tmp->getValue();
 		d %= size - 1;
 		d += size - 2;
 		d %= size - 1;
-		int newId = oldId + d;
+		ll newId = oldId + d;
 		newId %= size - 1;
 		root = root->remove(tmp);
 		// assert(root->isCorrect());
@@ -469,7 +470,8 @@ class cSolve{
 		ifstream ifstr(name, ios::binary);
 		size = 0;
 		for(getline(ifstr, line); !ifstr.eof(); getline(ifstr, line)){
-			int value = stoi(line);
+			ll value = stol(line);
+			value *= 811589153;
 			storage.push_back(value);
 			ordByVal.emplace(value, size);
 			size++;
@@ -493,41 +495,45 @@ class cSolve{
 		// root->printSize();
 		// cout << endl;
 		// assert(root->isCorrect());
-		for(int i = 0; i<d; i++){
-			move(i);
-			//cout << "move " << i + 1 << ":"; 
-			// root->print();
-			// cout << endl << "\t";
-			// root->printH();
-			// cout << endl << "\t";
-			// root->printSize();
-			// cout << endl;
+		for(int times = 0; times < 10; times++){
+			for(int i = 0; i<d; i++){
+				move(i);
+				//cout << "move " << i + 1 << ":"; 
+				// root->print();
+				// cout << endl << "\t";
+				// root->printH();
+				// cout << endl << "\t";
+				// root->printSize();
+				// cout << endl;
+			}
 		}
 	}
 
-	int mix(void){
+	ll mix(void){
 		//математическая формула из условия задачи
 		int zid = storage[ordByVal[0]].getId();
 		int d = size;
 		int id1 = (zid + 1000) % d;
 		int id2 = (zid + 2000) % d;
 		int id3 = (zid + 3000) % d;
-		return (*root)[id1]->getValue() + 
-				(*root)[id2]->getValue() +
-				(*root)[id3]->getValue();
+		ll a1 = (*root)[id1]->getValue();
+		ll a2 = (*root)[id2]->getValue();
+		ll a3 = (*root)[id3]->getValue();
+
+		return a1 + a2 + a3;
 	}
 };
 
 int main(void){	
-	int result;
+	ll result;
 	const auto tstart = chrono::steady_clock::now();
 
 	cSolve test("test.input");
 	test.solve();
 	result = test.mix();
 	
-	if(result != 3){
-		cout << "test failed (3):" << result <<endl;
+	if(result != 1623178306){
+		cout << "test failed (1623178306):" << result <<endl;
 		return -2;
 	}
 	cout << "test passed!" << endl;
@@ -535,14 +541,14 @@ int main(void){
 	cSolve cond("cond.input");
 	cond.solve();
 	result = cond.mix();
-	if(result != 7153){
-		cout << "cond failed (7153):" << result <<endl;
+	if(result != 6146976244822){
+		cout << "cond failed (6146976244822):" << result <<endl;
 		return -2;
 	}
 	cout<<"cond passed "<< result << endl;
 	const auto tend = chrono::steady_clock::now();
 	const auto interval = std::chrono::duration_cast<std::chrono::microseconds>(tend - tstart);
 	std::cout << "time passed: " << std::chrono::microseconds(interval).count() << "us" << std::endl;
-	// 484401us
+	// 62113us
 	return 0;
 }

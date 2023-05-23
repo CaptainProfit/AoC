@@ -97,7 +97,7 @@ class cSolve{
 };
 
 int main(void){	
-	int result;
+	long long result;
 	const auto tstart = chrono::steady_clock::now();
 	cSolve test("test.input");
 	test.solve();
@@ -115,8 +115,8 @@ int main(void){
 	cout << "(7153)" << endl;
 	const auto tend = chrono::steady_clock::now();
 	const auto interval = std::chrono::duration_cast<std::chrono::microseconds>(tend - tstart);
-	std::cout << "time passed: " << std::chrono::microseconds(interval).count() << std::endl;
+	std::cout << "time passed: " << std::chrono::microseconds(interval).count() << "us" << std::endl;
 	// 7153 correct
-	
+	// 60388us
 	return 0;
 }
