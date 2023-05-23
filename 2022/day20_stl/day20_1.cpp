@@ -115,6 +115,12 @@ class cTreeNode{
 		Y->rotateRight();
 	}
 
+	cTreeNode* restoreRoot(void){
+		cTreeNode* it = this;
+		while(it->parent != nullptr) it = it->parent;
+		return it;
+	}
+
 	int getH(void){
 		if(this == nullptr)
 			return 0;
@@ -149,10 +155,17 @@ class cTreeNode{
 	}
 
 	void restoreBalance(void){
+		cTreeNode* it = this;
+		// while(it->parent != nullptr){
+		// 	it = it->parent;
+		// 	it->refreshNode();
+		// }
+		// return;
 		// leafs to root
 		if(this == nullptr){
 			return;
 		}
+		refreshNode();
 		int diff = left->getH() - right->getH();
 		if(diff >= 2){
 			if(left->left->getH() >= left->right->getH() ){
@@ -211,91 +224,96 @@ class cTreeNode{
 		return left->isCorrect(this) && right->isCorrect(this);
 	}
 
-	void remove(cTreeNode* oldEl){
+	void changeKid(cTreeNode* newKid){
+		if(parent != nullptr){
+			if(parent->left == this){
+				parent->left = newKid;
+			}
+			else if(parent->right == this){
+				parent->right = newKid;
+			}
+			else{
+				assert(0);
+			}
+		}
+	}
+
+	void bindKids(void){
+		if(left != nullptr){
+			left->parent = this;
+		}
+		if(right != nullptr){
+			right->parent = this;
+		}
+	}
+
+	cTreeNode* remove(cTreeNode* oldEl){
 		cntdel++;
-		cTreeNode* par = oldEl->parent;
+		cTreeNode* oldRoot = this;
+		//cTreeNode* par = oldEl->parent;
 		cTreeNode* it = nullptr;
 		//1) если хотя бы одного ребенка нет
 		if(oldEl->left == nullptr || oldEl->right == nullptr){
+			
+			//1.1) определиться, на кого буду менять.
 			if(oldEl->left != nullptr){
 				it = oldEl->left;
 			}
 			else if(oldEl->right != nullptr){
 				it = oldEl->right;
 			}
-			if(par->left == oldEl){
-				par->left = it;
-			}
-			else if(par->right == oldEl){
-				par->right = it;
+
+			//1.2) восстановить баланс
+			oldEl->changeKid(it);
+			if(it != nullptr){
+				it->refreshNode();
+				it->restoreBalance();
 			}
 			else{
-				assert(0);
+				oldEl->parent->refreshNode();
+				oldEl->parent->restoreBalance();
 			}
-			if(it != nullptr){
-				it->parent = par;
-			}
-
+			
+			//1.3) потереть ячейку элемента.
 			oldEl->parent = nullptr;
 			oldEl->left = nullptr;
 			oldEl->parent = nullptr;
 			oldEl->size = -1;
 			oldEl->h = -1;
-			par->refreshNode();
-			par->restoreBalance();
-			return;
+
+			//1.4) восстановить корень
+			return oldRoot->restoreRoot();
 		}
 
-		//2) если оба ребенка - надо найти чтото пустоватое и свапнуть туда.
+		//2) если оба ребенка присутствуют
+		//2.1) найти самого левого справа.
 		cTreeNode* branch = oldEl->left;
 		while(branch->right != nullptr){
 			branch = branch->right;
 		}
-		cTreeNode* branchpar = branch->parent;
-		
-		if(par != nullptr){
-			if(par->left == oldEl){
-				par->left = branch;
-			}
-			else if(par->right == oldEl){
-				par->right = branch;
-			}
-			else {
-				assert(0);
-			}
+		if(oldEl == this){
+			oldRoot = branch;
 		}
+		
+		//2.2) переобозначаю предку детей для удаляемого элемента
+		oldEl->changeKid(branch);
+		//2.2) переобозначаю предку детей для подмены
+		branch->changeKid(oldEl);
+		//2.3) меняю параметры ячеек в дереве местами.
+		swap(oldEl->parent, branch->parent);
+		swap(oldEl->left, 	branch->left);
+		swap(oldEl->right, 	branch->right);
+		swap(oldEl->h, 		branch->h);
+		swap(oldEl->size, 	branch->size);
 
-		if(branchpar != nullptr){
-			if(branchpar->left == branch){
-				branchpar->left = oldEl;
-			}
-			else if(branchpar->right == branch){
-				branchpar->right = oldEl;
-			}
-			else {
-				assert(0);
-			}
-		}
-		branch->parent = par;
-		oldEl->parent = branchpar;
-		cTreeNode *tmp = branch->left;
-		branch->left = oldEl->left;
-		oldEl->left	=tmp;
-		tmp = branch->right;
-		branch->right = oldEl->right;
-		oldEl->right = tmp;
-		int tmp2 = branch->h;
-		branch->h = oldEl->h;
-		oldEl->h = tmp2;
-		tmp2 = branch->size;
-		branch->size = oldEl->size;
-		oldEl->size = tmp2;
-		
+		oldEl->bindKids();
+		branch->bindKids();
 		//и ещё раз!
-		remove(oldEl);
+		assert(1);
+		return oldRoot->remove(oldEl);
 	}
 
-	void insertAfter(int id, cTreeNode* newEl){
+	cTreeNode* insertAfter(int id, cTreeNode* newEl){
 		cntins++;
 		cTreeNode* it = (*this)[id];
 		if(it->right == nullptr){
@@ -310,7 +328,7 @@ class cTreeNode{
 		}
 		newEl->parent = it;
 		newEl->restoreBalance();
-		assert(1);
+		return restoreRoot();
 	}
 
 	cTreeNode* operator[](int id){
@@ -400,12 +418,6 @@ class cSolve{
 	cTreeNode* root;
 	int size;
 
-	void restoreRoot(void){
-		while(root->parent != nullptr){
-			root = root->parent;
-		}
-	}
-
 	void move(int i){
 		cTreeNode* tmp = &storage[i];
 		int oldId = tmp->getId();
@@ -415,8 +427,7 @@ class cSolve{
 		d %= size - 1;
 		int newId = oldId + d;
 		newId %= size - 1;
-		root->remove(tmp);
-		restoreRoot();
+		root = root->remove(tmp);
 		cout << "delete: "; 
 		root->print();
 		cout << endl << "\t";
@@ -426,8 +437,7 @@ class cSolve{
 		cout << endl;
 		assert(root->isCorrect());
 		//root->print();
-		root->insertAfter(newId, tmp);
-		restoreRoot();
+		root = root->insertAfter(newId, tmp);
 		//assert(root->isCorrect());
 	}
 	
@@ -444,8 +454,7 @@ class cSolve{
 		}
 		root = &storage[0];
 		for(int i = 1; i < size; i++){
-			root->insertAfter(i - 1, &storage[i]);
-			restoreRoot();
+			root = root->insertAfter(i - 1, &storage[i]);
 			assert(root->isCorrect());
 		}
 		ifstr.close();
