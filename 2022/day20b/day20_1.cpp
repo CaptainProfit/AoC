@@ -6,6 +6,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <chrono>
 #include <map>
 #define ull unsigned long long
 
@@ -97,6 +98,7 @@ class cSolve{
 
 int main(void){	
 	int result;
+	const auto tstart = chrono::steady_clock::now();
 	cSolve test("test.input");
 	test.solve();
 	result = test.mix();
@@ -111,6 +113,9 @@ int main(void){
 	result = cond.solve();
 	cout << "result:" << result << endl;
 	cout << "(7153)" << endl;
+	const auto tend = chrono::steady_clock::now();
+	const auto interval = std::chrono::duration_cast<std::chrono::microseconds>(tend - tstart);
+	std::cout << "time passed: " << std::chrono::microseconds(interval).count() << std::endl;
 	// 7153 correct
 	
 	return 0;

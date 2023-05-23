@@ -8,16 +8,26 @@
 #include <vector>
 #include <stack>
 #include <map>
-#include <cassert>
+// #include <cassert>
 #include <algorithm>
+#include <chrono>
+#include <ctime>
+#include <iomanip>
+
 #define ull unsigned long long
+using namespace std;
+#define NDEBUG
+
+string sne = "";
+string sob = "";
+string scb = "";
+
 int cntl = 0;
 int cntr = 0;
 int cntdl = 0;
 int cntdr = 0;
 int cntdel = 0;
 int cntins = 0;
-using namespace std;
 class cTreeNode{
 	cTreeNode *left, *right;
 	int h;
@@ -43,7 +53,7 @@ class cTreeNode{
 				parent->right = Y;
 			}
 			else{
-				assert(0);
+				// assert(0);
 			}
 		}
 		
@@ -80,7 +90,7 @@ class cTreeNode{
 				parent->right = X;
 			}
 			else{
-				assert(0);
+				// assert(0);
 			}
 		}
 
@@ -193,7 +203,7 @@ class cTreeNode{
 		
 		refreshNode();
 		parent->restoreBalance();
-		//assert(0);
+		// //assert(0);
 	}
 	
 	public:	
@@ -224,7 +234,7 @@ class cTreeNode{
 		return left->isCorrect(this) && right->isCorrect(this);
 	}
 
-	void changeKid(cTreeNode* newKid){
+	void trickParent(cTreeNode* newKid){
 		if(parent != nullptr){
 			if(parent->left == this){
 				parent->left = newKid;
@@ -233,7 +243,7 @@ class cTreeNode{
 				parent->right = newKid;
 			}
 			else{
-				assert(0);
+				// assert(0);
 			}
 		}
 	}
@@ -264,24 +274,33 @@ class cTreeNode{
 			}
 
 			//1.2) восстановить баланс
-			oldEl->changeKid(it);
+			oldEl->trickParent(it);
 			if(it != nullptr){
-				it->refreshNode();
+				it->parent = oldEl->parent;
+				//it->refreshNode();
 				it->restoreBalance();
 			}
 			else{
-				oldEl->parent->refreshNode();
-				oldEl->parent->restoreBalance();
+				if(oldEl->parent != nullptr){
+					oldEl->parent->refreshNode();
+					oldEl->parent->restoreBalance();
+				}
+				else{
+					//нереализовано
+					// assert(0); 
+				}
 			}
 			
 			//1.3) потереть ячейку элемента.
 			oldEl->parent = nullptr;
 			oldEl->left = nullptr;
-			oldEl->parent = nullptr;
+			oldEl->right = nullptr;
 			oldEl->size = -1;
 			oldEl->h = -1;
 
 			//1.4) восстановить корень
+			oldRoot = oldRoot->restoreRoot();
+			// assert(oldRoot->isCorrect());
 			return oldRoot->restoreRoot();
 		}
 
@@ -296,9 +315,9 @@ class cTreeNode{
 		}
 		
 		//2.2) переобозначаю предку детей для удаляемого элемента
-		oldEl->changeKid(branch);
+		oldEl->trickParent(branch);
 		//2.2) переобозначаю предку детей для подмены
-		branch->changeKid(oldEl);
+		branch->trickParent(oldEl);
 		//2.3) меняю параметры ячеек в дереве местами.
 		swap(oldEl->parent, branch->parent);
 		swap(oldEl->left, 	branch->left);
@@ -309,7 +328,8 @@ class cTreeNode{
 		oldEl->bindKids();
 		branch->bindKids();
 		//и ещё раз!
-		assert(1);
+		oldRoot = oldRoot->restoreRoot();
+		// assert(oldRoot->isCorrect());
 		return oldRoot->remove(oldEl);
 	}
 
@@ -341,7 +361,7 @@ class cTreeNode{
 		if(id > left->getSize()){
 			return (*right)[id - left->getSize() - 1];
 		}
-		assert(0);
+		// assert(0);
 		return nullptr;		
 	}
 
@@ -372,43 +392,52 @@ class cTreeNode{
 	}
 
 	int getValue(int i ){
-		assert(0);
+		// assert(0);
 		return getValue();
 	}
 
 	void print(void){
+		#ifndef LOG
+		return;
+		#endif
 		if(this == nullptr){
 			cout << ".";
 			return;
 		}
-		cout << "[";
+		cout << sob;
 		left->print();
 		cout << " " << value;
 		right->print();
-		cout << "]";
+		cout << scb;
 	}
 	void printH(void){
+		#ifndef LOG_H
+		return;
+		#endif
 		if(this == nullptr){
-			cout << ".";
+			cout << sne;
 			return;
 		}
-		cout << "[";
+		cout << sob;
 		left->printH();
 		cout << " " << h;
 		right->printH();
-		cout << "]";
+		cout << scb;
 	}
 	
 	void printSize(void){
+		#ifndef LOG_SIZE
+		return;
+		#endif
 		if(this == nullptr){
-			cout << ".";
+			cout << sne;
 			return;
 		}
-		cout << "[";
+		cout << sob;
 		left->printSize();
 		cout << " " << size;
 		right->printSize();
-		cout << "]";
+		cout << scb;
 	}
 };
 
@@ -428,17 +457,10 @@ class cSolve{
 		int newId = oldId + d;
 		newId %= size - 1;
 		root = root->remove(tmp);
-		cout << "delete: "; 
-		root->print();
-		cout << endl << "\t";
-		root->printH();
-		cout << endl << "\t";
-		root->printSize();
-		cout << endl;
-		assert(root->isCorrect());
+		// assert(root->isCorrect());
 		//root->print();
 		root = root->insertAfter(newId, tmp);
-		//assert(root->isCorrect());
+		// //assert(root->isCorrect());
 	}
 	
 	public:
@@ -455,7 +477,7 @@ class cSolve{
 		root = &storage[0];
 		for(int i = 1; i < size; i++){
 			root = root->insertAfter(i - 1, &storage[i]);
-			assert(root->isCorrect());
+			// assert(root->isCorrect());
 		}
 		ifstr.close();
 	}
@@ -463,22 +485,23 @@ class cSolve{
 	void solve(void){
 		int d = storage.size();
 		cout << "start: "; 
-		root->print();
-		cout << endl << "\t";
-		root->printH();
-		cout << endl << "\t";
-		root->printSize();
-		cout << endl;
-		assert(root->isCorrect());
+		//root->print();
+		// root->print();
+		// cout << endl << "\t";
+		// root->printH();
+		// cout << endl << "\t";
+		// root->printSize();
+		// cout << endl;
+		// assert(root->isCorrect());
 		for(int i = 0; i<d; i++){
 			move(i);
-			cout << "move " << i + 1 << ":"; 
-			root->print();
-			cout << endl << "\t";
-			root->printH();
-			cout << endl << "\t";
-			root->printSize();
-			cout << endl;
+			//cout << "move " << i + 1 << ":"; 
+			// root->print();
+			// cout << endl << "\t";
+			// root->printH();
+			// cout << endl << "\t";
+			// root->printSize();
+			// cout << endl;
 		}
 	}
 
@@ -497,6 +520,8 @@ class cSolve{
 
 int main(void){	
 	int result;
+	const auto tstart = chrono::steady_clock::now();
+
 	cSolve test("test.input");
 	test.solve();
 	result = test.mix();
@@ -505,8 +530,9 @@ int main(void){
 		cout << "test failed (3):" << result <<endl;
 		return -2;
 	}
+	cout << "test passed!" << endl;
 
-	cSolve cond("test.input");
+	cSolve cond("cond.input");
 	cond.solve();
 	result = cond.mix();
 	if(result != 7153){
@@ -514,5 +540,8 @@ int main(void){
 		return -2;
 	}
 	cout<<"cond passed "<< result << endl;
+	const auto tend = chrono::steady_clock::now();
+	const auto interval = std::chrono::duration_cast<std::chrono::microseconds>(tend - tstart);
+	std::cout << "time passed: " << std::chrono::microseconds(interval).count() << std::endl;
 	return 0;
 }
