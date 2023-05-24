@@ -11,6 +11,9 @@
 
 using namespace std;
 
+class cContainer{
+};
+
 class cSolve{
 	string name;
 	map<pair<int, int>, int >elves;
@@ -77,11 +80,30 @@ class cSolve{
 		ifstr.close();
 		printMap();
 	}
+	void solve(){
+	
+	}
+	
+		
 
 };
 int main(void){
 	long long result;
-	cSolve test1("test1");
-	cout<<"there are "<<result<<" in result"<<endl;
+	string names[] = {"test1","test2","cond"};
+	string answers[] = {-1,-1,-1};
+	
+	for(int i = 0; i < 3; i++){
+		cSolve test1(names[i]);
+		test1.solve();
+		result = test1.result();
+		test1.printUsedTime();
+		test1.printUsedMemory();
+		if(result != answers[i]){
+			cout << names[i] + " failed" << result << endl;
+			return -2;
+		}
+		cout << names[i] + " passed" << endl;
+	}
+		cout<<"there are "<<result<<" in result"<<endl;
 	return 0;
 }
