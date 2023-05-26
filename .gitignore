@@ -3,3 +3,4 @@
 *.json
 /2022/session.cookie
 /2022/day20/obj/*.o
+*.output
