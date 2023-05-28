@@ -86,6 +86,7 @@ const cPoint dir[] = {
 class cContainer{
 	set<cPoint> points;
 	int minX, maxX, minY, maxY;
+	int changes;
 	string verticalBorder;
 	bool differentState = true;
 	map<cPoint, list<cPoint>> proposes;
@@ -162,6 +163,9 @@ class cContainer{
 					//scanPos.propose = *it2;
 					proposes[scanPos].push_back(*it);
 					proposed = true;
+					if( it2 != totOrder.cbegin()){
+						differentState = true;
+					}
 					break;
 				}
 			}
@@ -173,6 +177,7 @@ class cContainer{
 	
 	void resolveCollisions(void){
 		set<cPoint> nextPoints;
+		changes = 0;
 		//1) перебираю штуки. составляю список претендентов.
 		for(map<cPoint, list<cPoint>>::iterator it = proposes.begin(); it != proposes.end(); it++){
 			
@@ -182,6 +187,7 @@ class cContainer{
 				//newPoint.acceptPropose();
 				nextPoints.emplace(newPoint);
 				//it++;
+				changes++;
 			}
 			else{
 				//2) на точку претендует несколько типов - всем отказываю.
@@ -202,8 +208,8 @@ class cContainer{
 		totOrder.push_back(t);
 	}
 
-	int getDifferentState(void){
-		return differentState;
+	bool stabilized(void){
+		return !differentState;
 	}
 
 	int getArea(void){
@@ -213,11 +219,16 @@ class cContainer{
 	int getSize(void){
 		return points.size();
 	}
+
+	int getChanged(void){
+		return changes;
+	}
 };
 
 class cSolve{
 	string name;
 	cContainer elves;
+	int steps = 0;
 	system_clock::duration timeInterval;
 
 	void printMap(ostream& ostr){
@@ -239,6 +250,7 @@ class cSolve{
 			y++;
 		}
 		ifstr.close();
+		steps = 0;
 		//printMap(cout);
 	}
 
@@ -251,11 +263,14 @@ class cSolve{
 		//ofstr << "-- initial state --" << endl;
 		//elves.printMap(cout);
 		//elves.printMap(ofstr);
-		for(int step  = 0; step < 10; step++){
+		for(; !elves.stabilized(); steps++){
 			elves.makeProposes();
 			elves.resolveCollisions();
 			// elves.printMap(ofstr, step);
 			// elves.printMap(cout, step);
+			if(steps && steps % 100){
+				cout << "step " << steps << " changed points " << elves.getChanged() << endl;
+			}
 			elves.orderChange();
 		}
 		//ofstr.close();
@@ -294,15 +309,15 @@ class cSolve{
 	}
 
 	int getResult(void){
-		elves.updateSizes();
-		return elves.getArea() - elves.getSize();
+		//elves.updateSizes();
+		return steps;
 	}
 };
 
 int main(void){
 	long long result;
 	string names[] = {"test1", "test2", "cond"};
-	int answers[] = {25, 110, 3757};
+	int answers[] = {4, 20, 918}; //6 min считал.
 	
 	for(int i = 0; i < 3; i++){
 		cSolve test1(names[i]);
