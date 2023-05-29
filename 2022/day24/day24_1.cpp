@@ -3,7 +3,7 @@
 //2147483647 - LONG_MAX
 //18446744073709551615 - ULLONG_MAX
 #include <cassert>
-#include <list>
+#include <queue>
 #include <set>
 #include <map>
 #include <string>
@@ -46,6 +46,23 @@ bool operator<(const cPoint& lhs, const cPoint& rhs){
 	return lhs.compareWith(rhs) < 0; 
 }
 
+struct c3Point{
+	int z;
+	int y;
+	int x;
+	c3Point(int _z, int _y, int _x){
+		z = _z;
+		y = _y;
+		x = _x;
+	}
+	c3Point& operator+=(const cPoint& rhs){
+		z ++;
+		y += rhs.y;
+		x += rhs.x;
+		return *this;
+	}
+};
+
 const cPoint dir[] = {
 	{-1,  0, 0x01, 0x04}, //N
 	{ 0,  1, 0x02, 0x08}, //E
@@ -55,10 +72,10 @@ const cPoint dir[] = {
 };
 
 const map<char, uint8_t> char2mask{
-	{' ', 0x0},	
+	{'.', 0x0},	
 	{'^', 0x1},	
 	{'>', 0x2},	
-	{'V', 0x4},	
+	{'v', 0x4},	
 	{'<', 0x8},	
 	{'#', 0x10},
 };
@@ -67,19 +84,22 @@ const map<char, uint8_t> mask2char{
 	{0x0, ' '},	
 	{0x1, '^'},	
 	{0x2, '>'},	
-	{0x4, 'V'},	
+	{0x4, 'v'},	
 	{0x8, '<'},	
 	{0x10, '#'},
+	{0x20, '.'},
 };
 
 class cContainer{
 	//z, y, x
 	vector<vector<vector<uint8_t>>> volume;
+	vector<vector<vector<int>>> dist;
 	set<cPoint> points;
 	string verticalBorder;
 	int height = 0;
 	int width = 0;
 	int depth = 0;
+
 	bool checkStitch(vector<vector<uint8_t>> &layer){
 		for(int y = 0; y < height; y++){
 			for(int x = 0; x < width; x++){
@@ -91,22 +111,26 @@ class cContainer{
 	}
 
 	void expandLayer(vector<vector<uint8_t>> &nextLayer){
-		assert(1);
 		vector<vector<uint8_t>> &layer = volume[depth - 1];
 		for(int y = 0; y < height; y++){
 			for(int x = 0; x < width; x++){
 				uint8_t mask = 0;
-				if(layer[y][x] == '#'){
-					nextLayer[y][x] = '#';
+				if( x == 0 ||
+					y == 0 ||
+					x == width - 1 ||
+					y == height - 1){
+					nextLayer[y][x] = layer[y][x];
 					continue;
 				}
+				
 				for(int i = 0; i < 4; i++){
-					int yt =1 + (y + dir[i].y + height - 1) % height;
-					int xt =1 + (x + dir[i].x + width  - 1) % width;
-					if(1){
-						mask |= layer[yt][xt] & dir[i].bwMask;
+					int yt = 1 + (y + dir[i].y + height - 3) % (height - 2);
+					int xt = 1 + (x + dir[i].x + width  - 3) % (width - 2);
+					if(layer[yt][xt] & dir[i].bwMask){
+						mask |= dir[i].bwMask;
 					}
 				}
+				nextLayer[y][x] = mask;
 			}
 		}
 	}
@@ -116,7 +140,7 @@ class cContainer{
 		while(true){
 			vector<vector<uint8_t>> nextLayer(height, vector<uint8_t>(width, 0));
 			expandLayer(nextLayer);
-			if(checkStitch(nextLayer)){
+			if(!checkStitch(nextLayer)){
 				volume.push_back(move(nextLayer));
 				depth++;
 			}
@@ -137,21 +161,39 @@ class cContainer{
 					case 0: line[x] = ' '; counter++; break;
 					case 1: line[x] = '^'; break;
 					case 2: line[x] = '>'; break;
-					case 4: line[x] = 'V'; break;
+					case 4: line[x] = 'v'; break;
 					case 8: line[x] = '<'; break;
 					case 3: case 5: case 6: case 9: case 10:
 					case 12: line[x] = '2'; break;
 					case 7: case 11: case 13:
 					case 14: line[x] = '3'; break;
 					case 15: line[x] = '4'; break;
-					default: line[x] = '#'; break;
+					case 16: line[x] = '#'; break;
+					case 32: line[x] = '.'; break;
+					case 64: line[x] = ','; break;
+					default: line[x] = '?'; break;
 				}
 			}
 			ostr << "|" << line << "|" << endl;
 		}
 		ostr << verticalBorder << endl;
-		ostr << counter << " free places" << endl;
 		return counter;
+	}
+
+	void solidifyVolume(void){
+		dist.resize(depth);
+		for(int z = 0; z < depth; z++){
+			dist[z].resize(height);
+			for(int y = 0; y < height; y++){
+				dist[z][y].resize(height, INT_MAX);
+				for(int x = 0; x < width; x++){
+					if(volume[z][y][x] != 0){
+						volume[z][y][x] = 0x10;
+					}
+				}
+			}
+		}
+		dist[0][0][1] = 0;
 	}
 
 	public:
@@ -171,8 +213,25 @@ class cContainer{
 		height = volume[0].size();
 		depth = volume.size();
 		verticalBorder = "+" + string(width, '-') + "+";
-		return;
 		makeVolume();
+		solidifyVolume();
+	}
+
+	int& operator[](c3Point& s){
+		return dist[s.z][s.y][s.x];
+	}
+
+	uint8_t& operator[](c3Point* s ){
+		return volume[s->z][s->y][s->x];
+	}
+
+	bool wrap(c3Point &s){
+		s.z %= depth;
+		return s.y >= 0 && s.x >= 0 && s.y < height && s.x < width;
+	}
+
+	bool isFinished(c3Point &s){
+		return s.y == (height - 1);
 	}
 };
 
@@ -180,16 +239,18 @@ class cSolve{
 	string name;
 	system_clock::duration timeInterval;
 	cContainer vol;
+	int steps;
 
 	public:	
 	cSolve(const string& filename){
 		name = filename;
+		steps = -2;
 		ifstream ifstr(name + ".input", ios::binary);			
 		string line;
 		vector<vector<uint8_t>> surface;
 		for(getline(ifstr, line); !ifstr.eof(); getline(ifstr, line)){
-			vector<uint8_t> buf(line.cbegin(), line.cend());
-			buf.reserve(line.length());
+			vector<uint8_t> buf;
+			buf.reserve(line.length() - 1);
 			for(int i = 0; i < line.length(); i++){
 				if(char2mask.find(line[i]) != char2mask.end()){
 					buf.push_back(char2mask.at(line[i]));
@@ -199,21 +260,47 @@ class cSolve{
 		}
 		ifstr.close();
 		vol.init(surface);
-		vol.print();
+		ofstream ofstr(name + ".map", ios::binary);
+		vol.print(ofstr);
+		ofstr.close();
 	}
 
 	void solve(void){
-		assert(0);
-		//time_point<system_clock>
-		// const time_point<system_clock> tStart = chrono::system_clock::now();
+		queue<c3Point> que;
+		steps = 0;
+		int zOld = -1;
 		// string outfile = name + ".output";
 		// ofstream ofstr(outfile, ios::binary);
-		// ofstr << "-- initial state --" << endl;
-		// ?.printMap(cout);
-		// ?.printMap(ofstr);
+		const time_point<system_clock> tStart = chrono::system_clock::now();
+		que.push(c3Point(0, 0, 1));
+		//vol[&(que.top())] = 0x20;
+		while(1){
+			c3Point s = que.front();
+			vol[&s] = 0x40;
+			que.pop();
+			if(zOld != s.z){
+				zOld = s.z;
+				steps++;
+			}
+			if(vol.isFinished(s)){
+				break;
+			}
+			for(int i = 0; i < 5; i++){
+				c3Point t(s);
+				t += dir[i];
+				if(vol.wrap(t)){
+					if(vol[&t] == 0){
+						vol[&t] = 0x20;
+						vol[t] = vol[s] + 1;
+						que.push(t);
+					}
+				}
+			}
+			//vol.print();
+		}
 		// ofstr.close();
-		// const time_point<system_clock> tEnd = chrono::system_clock::now();
-		// timeInterval = tEnd - tStart;
+		const time_point<system_clock> tEnd = chrono::system_clock::now();
+		timeInterval = tEnd - tStart;
 	}
 
 	void printUsedTime(void){
@@ -247,15 +334,14 @@ class cSolve{
 	}
 
 	int getResult(void){
-		assert(0);
-		return -2;
+		return steps - 1;
 	}
 };
 
 int main(void){
 	long long result;
 	string names[] = {"test1", "test2", "cond"};
-	int answers[] = {-1, -1, -1};
+	int answers[] = {10, 18, -1};
 	
 	for(int i = 0; i < 3; i++){
 		cSolve test1(names[i]);
