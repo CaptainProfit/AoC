@@ -18,12 +18,14 @@ using namespace chrono;
 struct cPoint{
 	int y;
 	int x;
-	int t;
-
-	cPoint(int _y, int _x, ){
+	uint8_t fwMask;
+	uint8_t bwMask;
+	
+	cPoint(int _y, int _x, uint8_t fw = 0xFF, uint8_t bw = 0xFF ){
 		y = _y;
 		x = _x;
-		
+		fwMask = fw;
+		bwMask = bw;
 		//order = {0, 1, 3, 4, 2};
 	}
 
@@ -45,109 +47,173 @@ bool operator<(const cPoint& lhs, const cPoint& rhs){
 }
 
 const cPoint dir[] = {
-	{-1,  0}, //N
-	{-1,  1}, //NE
-	{ 0,  1}, //E
-	{ 1,  1}, //SE
-	{ 1,  0}, //S
-	{ 1, -1}, //SW
-	{ 0, -1}, //W
-	{-1, -1}, //NW
+	{-1,  0, 0x01, 0x04}, //N
+	{ 0,  1, 0x02, 0x08}, //E
+	{ 1,  0, 0x04, 0x01}, //S
+	{ 0, -1, 0x08, 0x02}, //W
 	{ 0,  0}, //center
 };
 
+const map<char, uint8_t> char2mask{
+	{' ', 0x0},	
+	{'^', 0x1},	
+	{'>', 0x2},	
+	{'V', 0x4},	
+	{'<', 0x8},	
+	{'#', 0x10},
+};
+
+const map<char, uint8_t> mask2char{
+	{0x0, ' '},	
+	{0x1, '^'},	
+	{0x2, '>'},	
+	{0x4, 'V'},	
+	{0x8, '<'},	
+	{0x10, '#'},
+};
+
 class cContainer{
+	//z, y, x
+	vector<vector<vector<uint8_t>>> volume;
 	set<cPoint> points;
 	string verticalBorder;
-	
-	public:
-	void updateSizes(void){
-		minX = INT_MAX;
-		minY = INT_MAX;
-		maxX = INT_MIN;
-		maxY = INT_MIN;
-		
-		for(const cPoint &it:points){
-			minX = minX > it.x ? it.x : minX;
-			maxX = maxX < it.x ? it.x : maxX;
-			minY = minY > it.y ? it.y : minY;
-			maxY = maxY < it.y ? it.y : maxY;
+	int height = 0;
+	int width = 0;
+	int depth = 0;
+	bool checkStitch(vector<vector<uint8_t>> &layer){
+		for(int y = 0; y < height; y++){
+			for(int x = 0; x < width; x++){
+				if(volume[0][y][x] != layer[y][x])
+					return false;
+			}
 		}
-		verticalBorder = "+" + string(maxX - minX + 1, '-') + "+";
-	}
-	
-	void addNewPoint(int y, int x){
-		points.emplace(y, x);
+		return true;
 	}
 
-	void printMap(ostream& ostr, int step = -1){
-		updateSizes();
-		if(step != -1){
-			ostr << " -- end of round " << step << " --" << endl;
+	void expandLayer(vector<vector<uint8_t>> &nextLayer){
+		assert(1);
+		vector<vector<uint8_t>> &layer = volume[depth - 1];
+		for(int y = 0; y < height; y++){
+			for(int x = 0; x < width; x++){
+				uint8_t mask = 0;
+				if(layer[y][x] == '#'){
+					nextLayer[y][x] = '#';
+					continue;
+				}
+				for(int i = 0; i < 4; i++){
+					int yt =1 + (y + dir[i].y + height - 1) % height;
+					int xt =1 + (x + dir[i].x + width  - 1) % width;
+					if(1){
+						mask |= layer[yt][xt] & dir[i].bwMask;
+					}
+				}
+			}
 		}
-		// ostr << "elves: " << endl;
-		// for(const cPoint &it:points){
-		// 	ostr << " (" << it.y << ", " << it.x << ")" << endl;
-		// }
-		// ostr << "map: " << endl;
+	}
+
+	void makeVolume(void){
+		depth = 1;
+		while(true){
+			vector<vector<uint8_t>> nextLayer(height, vector<uint8_t>(width, 0));
+			expandLayer(nextLayer);
+			if(checkStitch(nextLayer)){
+				volume.push_back(move(nextLayer));
+				depth++;
+			}
+			else{
+				return;
+			}
+		}
+	}	
+
+	int printLayer(int z, ostream& ostr = cout){
 		ostr << verticalBorder << endl;
-		for(int j = minY; j <= maxY; j++){
-			string line(maxX - minX + 1, ' ');
-			for(int i = minX; i <= maxX; i++){
-				if(points.find(cPoint(j, i)) != points.end()){
-					line[i - minX] = '#';
+		int counter = 0;
+		vector<vector<uint8_t>> &layer = volume[z];
+		for(int y = 0; y < height; y++){
+			string line(width, ' ');
+			for(int x = 0; x < width; x++){
+				switch(layer[y][x]){
+					case 0: line[x] = ' '; counter++; break;
+					case 1: line[x] = '^'; break;
+					case 2: line[x] = '>'; break;
+					case 4: line[x] = 'V'; break;
+					case 8: line[x] = '<'; break;
+					case 3: case 5: case 6: case 9: case 10:
+					case 12: line[x] = '2'; break;
+					case 7: case 11: case 13:
+					case 14: line[x] = '3'; break;
+					case 15: line[x] = '4'; break;
+					default: line[x] = '#'; break;
 				}
 			}
 			ostr << "|" << line << "|" << endl;
 		}
 		ostr << verticalBorder << endl;
+		ostr << counter << " free places" << endl;
+		return counter;
 	}
 
-	void orderChange(void){
-		auto it = totOrder.begin();
-		it++;
-		int t = *it;
-		totOrder.erase(it);
-		totOrder.push_back(t);
+	public:
+
+	void print(ostream& ostr = cout){
+		int counter = 0;
+		for(int z = 0; z < depth; z++){
+			ostr << " == layer " << z << " == " << endl;
+			counter += printLayer(z, ostr);
+		}
+		ostr << counter << " total free places" << endl;
 	}
 
+	void init(vector<vector<uint8_t>> &seed){
+		volume.push_back(move(seed));
+		width = volume[0][0].size();
+		height = volume[0].size();
+		depth = volume.size();
+		verticalBorder = "+" + string(width, '-') + "+";
+		return;
+		makeVolume();
+	}
 };
 
 class cSolve{
 	string name;
 	system_clock::duration timeInterval;
+	cContainer vol;
 
 	public:	
 	cSolve(const string& filename){
 		name = filename;
 		ifstream ifstr(name + ".input", ios::binary);			
 		string line;
-		int y = 0;
-		assert(0);
+		vector<vector<uint8_t>> surface;
 		for(getline(ifstr, line); !ifstr.eof(); getline(ifstr, line)){
-			for(int x=0; x < line.length(); x++){
-				if(line[x] == '#'){
-					elves.addNewPoint(y ,x);
+			vector<uint8_t> buf(line.cbegin(), line.cend());
+			buf.reserve(line.length());
+			for(int i = 0; i < line.length(); i++){
+				if(char2mask.find(line[i]) != char2mask.end()){
+					buf.push_back(char2mask.at(line[i]));
 				}
 			}
-			y++;
+			surface.push_back(move(buf));
 		}
 		ifstr.close();
-		//printMap(cout);
+		vol.init(surface);
+		vol.print();
 	}
 
 	void solve(void){
-		//time_point<system_clock>
-		const time_point<system_clock> tStart = chrono::system_clock::now();
-		string outfile = name + ".output";
-		ofstream ofstr(outfile, ios::binary);
-		ofstr << "-- initial state --" << endl;
-		?.printMap(cout);
-		?.printMap(ofstr);
-		ofstr.close();
 		assert(0);
-		const time_point<system_clock> tEnd = chrono::system_clock::now();
-		timeInterval = tEnd - tStart;
+		//time_point<system_clock>
+		// const time_point<system_clock> tStart = chrono::system_clock::now();
+		// string outfile = name + ".output";
+		// ofstream ofstr(outfile, ios::binary);
+		// ofstr << "-- initial state --" << endl;
+		// ?.printMap(cout);
+		// ?.printMap(ofstr);
+		// ofstr.close();
+		// const time_point<system_clock> tEnd = chrono::system_clock::now();
+		// timeInterval = tEnd - tStart;
 	}
 
 	void printUsedTime(void){
