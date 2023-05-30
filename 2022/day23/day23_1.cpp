@@ -5,7 +5,7 @@
 #include <cassert>
 #include <list>
 #include <set>
-#include <unordered_map>
+#include <map>
 #include <string>
 #include <vector>
 #include <chrono>
@@ -31,13 +31,13 @@ struct cPoint{
 	int y;
 	int x;
 	int propose;
-	//list<int> order;
+	list<int> order;
 
 	cPoint(int _y, int _x, int prop = -1){
 		y = _y;
 		x = _x;
 		propose = prop;
-		//order = {0, 1, 3, 4, 2};
+		order = {0, 1, 3, 4, 2};
 	}
 
 	cPoint& operator+=(const cPoint& rhs){
@@ -47,8 +47,8 @@ struct cPoint{
 	}
 
 	void acceptPropose(){
-		// order.remove(propose);
-		// order.push_back(propose);
+		order.remove(propose);
+		order.push_back(propose);
 		propose = -1;
 	}
 
@@ -88,10 +88,7 @@ class cContainer{
 	int minX, maxX, minY, maxY;
 	string verticalBorder;
 	bool differentState = true;
-	unordered_map<cPoint, list<cPoint>> proposes;
-	list<int> totOrder = {0, 1, 3, 4, 2};
-	
-	public:
+	map<cPoint, list<cPoint>> proposes;
 
 	void updateSizes(void){
 		minX = INT_MAX;
@@ -107,21 +104,21 @@ class cContainer{
 		}
 		verticalBorder = "+" + string(maxX - minX + 1, '-') + "+";
 	}
+
+	public:
 	
 	void addNewPoint(int y, int x){
 		points.emplace(y, x);
 	}
 
-	void printMap(ostream& ostr, int step = -1){
+	void printMap(ostream& ostr){
 		updateSizes();
-		if(step != -1){
-			ostr << " -- end of round " << step << " --" << endl;
+		ostr << " - - - - - - - - - - - - -" << endl;
+		ostr << "elves: " << endl;
+		for(const cPoint &it:points){
+			ostr << " (" << it.y << ", " << it.x << ")" << endl;
 		}
-		// ostr << "elves: " << endl;
-		// for(const cPoint &it:points){
-		// 	ostr << " (" << it.y << ", " << it.x << ")" << endl;
-		// }
-		// ostr << "map: " << endl;
+		ostr << "map: " << endl;
 		ostr << verticalBorder << endl;
 		for(int j = minY; j <= maxY; j++){
 			string line(maxX - minX + 1, ' ');
@@ -155,11 +152,11 @@ class cContainer{
 
 			//делаю предположение, куда пытаюсь перейти.
 			bool proposed = false;
-			for(list<int>::const_iterator it2 = totOrder.cbegin(); totOrder.cend() != it2; it2++){
+			for(list<int>::const_iterator it2 = it->order.begin(); it->order.end() != it2; it2++){
 				if( (mask & dirMask[*it2].first) == 0){
 					cPoint scanPos(*it);
 					scanPos += dir[dirMask[*it2].second];
-					//scanPos.propose = *it2;
+					scanPos.propose = *it2;
 					proposes[scanPos].push_back(*it);
 					proposed = true;
 					break;
@@ -174,12 +171,12 @@ class cContainer{
 	void resolveCollisions(void){
 		set<cPoint> nextPoints;
 		//1) перебираю штуки. составляю список претендентов.
-		for(unordered_map<cPoint, list<cPoint>>::iterator it = proposes.begin(); it != proposes.end(); it++){
+		for(map<cPoint, list<cPoint>>::iterator it = proposes.begin(); it != proposes.end(); it++){
 			
 			if(it->second.size() == 1){
 				//1) на точку претендует ктото один - нет коллизий, 
 				cPoint newPoint(it->first);
-				//newPoint.acceptPropose();
+				newPoint.acceptPropose();
 				nextPoints.emplace(newPoint);
 				//it++;
 			}
@@ -192,14 +189,6 @@ class cContainer{
 		}
 		points = move(nextPoints);
 		proposes.clear();
-	}
-
-	void orderChange(void){
-		auto it = totOrder.begin();
-		it++;
-		int t = *it;
-		totOrder.erase(it);
-		totOrder.push_back(t);
 	}
 
 	int getDifferentState(void){
@@ -239,26 +228,21 @@ class cSolve{
 			y++;
 		}
 		ifstr.close();
-		//printMap(cout);
+		printMap(cout);
 	}
 
 	void solve(void){
 		//time_point<system_clock>
 		const time_point<system_clock> tStart = chrono::system_clock::now();
 		string outfile = name + ".output";
-		//ofstream ofstr(outfile, ios::binary);
-		//cout << "-- initial state --" << endl;
-		//ofstr << "-- initial state --" << endl;
-		//elves.printMap(cout);
-		//elves.printMap(ofstr);
-		for(int step  = 0; step < 10; step++){
+		ofstream ofstr(outfile, ios::binary);	
+		for(int steps  = 0; steps < 10; steps++){
 			elves.makeProposes();
 			elves.resolveCollisions();
-			// elves.printMap(ofstr, step);
-			// elves.printMap(cout, step);
-			elves.orderChange();
+			elves.printMap(ofstr);
+			elves.printMap(cout);
 		}
-		//ofstr.close();
+		ofstr.close();
 		const time_point<system_clock> tEnd = chrono::system_clock::now();
 		timeInterval = tEnd - tStart;
 	}
@@ -294,7 +278,6 @@ class cSolve{
 	}
 
 	int getResult(void){
-		elves.updateSizes();
 		return elves.getArea() - elves.getSize();
 	}
 };
@@ -302,7 +285,7 @@ class cSolve{
 int main(void){
 	long long result;
 	string names[] = {"test1", "test2", "cond"};
-	int answers[] = {25, 110, 3757};
+	int answers[] = {-1,-1,-1};
 	
 	for(int i = 0; i < 3; i++){
 		cSolve test1(names[i]);
@@ -311,7 +294,7 @@ int main(void){
 		test1.printUsedTime();
 		test1.printUsedMemory();
 		if(result != answers[i]){
-			cout << names[i] + " failed " << result << endl;
+			cout << names[i] + " failed" << result << endl;
 			return -2;
 		}
 		cout << names[i] + " passed" << endl;

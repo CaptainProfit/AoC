@@ -4,13 +4,14 @@
 //18446744073709551615 - ULLONG_MAX
 #include <cassert>
 #include <list>
-#include <set>
-#include <map>
+#include <unordered_set>
+#include <unordered_map>
 #include <string>
 #include <vector>
 #include <chrono>
 #include <iostream> 
 #include <fstream>
+#include "log_duration.h"
 #define ull unsigned long long
 using namespace std;
 using namespace chrono;
@@ -84,12 +85,12 @@ const cPoint dir[] = {
 };
 
 class cContainer{
-	set<cPoint> points;
+	unordered_set<cPoint> points;
 	int minX, maxX, minY, maxY;
 	int changes;
 	string verticalBorder;
 	bool differentState = true;
-	map<cPoint, list<cPoint>> proposes;
+	unordered_map<cPoint, list<cPoint>> proposes;
 	list<int> totOrder = {0, 1, 3, 4, 2};
 	
 	public:
@@ -142,8 +143,9 @@ class cContainer{
 	}
 
 	void makeProposes(){
+		LOG_LIFE_TIME_DURATION("makeProposes");
 		differentState = false;
-		for(set<cPoint>::iterator it = points.begin(); it != points.end(); it++){
+		for(unordered_set<cPoint>::iterator it = points.begin(); it != points.end(); it++){
 			uint8_t mask = 0;
 			//осматриваю границы.
 			for(int k = 0; k < 8; k++){
@@ -176,10 +178,11 @@ class cContainer{
 	}
 	
 	void resolveCollisions(void){
-		set<cPoint> nextPoints;
+		LOG_LIFE_TIME_DURATION("resolveCollisions");
+		unordered_set<cPoint> nextPoints;
 		changes = 0;
 		//1) перебираю штуки. составляю список претендентов.
-		for(map<cPoint, list<cPoint>>::iterator it = proposes.begin(); it != proposes.end(); it++){
+		for(unordered_map<cPoint, list<cPoint>>::iterator it = proposes.begin(); it != proposes.end(); it++){
 			
 			if(it->second.size() == 1){
 				//1) на точку претендует ктото один - нет коллизий, 
@@ -196,8 +199,11 @@ class cContainer{
 				}
 			}
 		}
-		points = move(nextPoints);
-		proposes.clear();
+		{
+			LOG_LIFE_TIME_DURATION("swapping");
+			points = move(nextPoints);
+			proposes.clear();
+		}
 	}
 
 	void orderChange(void){
@@ -268,8 +274,12 @@ class cSolve{
 			elves.resolveCollisions();
 			// elves.printMap(ofstr, step);
 			// elves.printMap(cout, step);
-			if(steps && steps % 100){
+			if(steps && (steps % 100 == 0)){
 				cout << "step " << steps << " changed points " << elves.getChanged() << endl;
+				break;
+			}
+			else{
+				cout << "step " << steps << endl;
 			}
 			elves.orderChange();
 		}
