@@ -5,7 +5,7 @@
 #include <cassert>
 #include <list>
 #include <set>
-#include <map>
+#include <unordered_map>
 #include <string>
 #include <vector>
 #include <chrono>
@@ -88,7 +88,7 @@ class cContainer{
 	int minX, maxX, minY, maxY;
 	string verticalBorder;
 	bool differentState = true;
-	map<cPoint, list<cPoint>> proposes;
+	unordered_map<cPoint, list<cPoint>> proposes;
 	list<int> totOrder = {0, 1, 3, 4, 2};
 	
 	public:
@@ -174,7 +174,7 @@ class cContainer{
 	void resolveCollisions(void){
 		set<cPoint> nextPoints;
 		//1) перебираю штуки. составляю список претендентов.
-		for(map<cPoint, list<cPoint>>::iterator it = proposes.begin(); it != proposes.end(); it++){
+		for(unordered_map<cPoint, list<cPoint>>::iterator it = proposes.begin(); it != proposes.end(); it++){
 			
 			if(it->second.size() == 1){
 				//1) на точку претендует ктото один - нет коллизий, 
