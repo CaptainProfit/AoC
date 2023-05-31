@@ -72,6 +72,17 @@ bool operator<(const cPoint& lhs, const cPoint& rhs){
 	return lhs.compareWith(rhs) < 0; 
 }
 
+bool operator==(const cPoint& lhs, const cPoint& rhs){
+	return lhs.compareWith(rhs) == 0;
+}
+
+template<>
+	struct std::hash<cPoint> {
+		std::size_t operator()(const cPoint& k) const {
+		return k.y * 3559 + k.x * 3571;
+	}
+};
+
 const cPoint dir[] = {
 	{-1,  0}, //N
 	{-1,  1}, //NE
