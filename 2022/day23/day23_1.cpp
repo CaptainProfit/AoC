@@ -11,6 +11,7 @@
 #include <chrono>
 #include <iostream> 
 #include <fstream>
+#include "log_duration.h"
 #define ull unsigned long long
 using namespace std;
 using namespace chrono;
@@ -138,6 +139,7 @@ class cContainer{
 	}
 
 	void makeProposes(){
+		LOG_LIFE_TIME_DURATION("makeProposes");
 		differentState = false;
 		for(set<cPoint>::iterator it = points.begin(); it != points.end(); it++){
 			uint8_t mask = 0;
@@ -169,6 +171,7 @@ class cContainer{
 	}
 	
 	void resolveCollisions(void){
+		LOG_LIFE_TIME_DURATION("resolveCollisions");
 		set<cPoint> nextPoints;
 		//1) перебираю штуки. составляю список претендентов.
 		for(map<cPoint, list<cPoint>>::iterator it = proposes.begin(); it != proposes.end(); it++){
@@ -187,8 +190,11 @@ class cContainer{
 				}
 			}
 		}
-		points = move(nextPoints);
-		proposes.clear();
+		{
+			LOG_LIFE_TIME_DURATION("swapping");
+			points = move(nextPoints);
+			proposes.clear();
+		}
 	}
 
 	int getDifferentState(void){
@@ -228,21 +234,22 @@ class cSolve{
 			y++;
 		}
 		ifstr.close();
-		printMap(cout);
+		//printMap(cout);
 	}
 
 	void solve(void){
 		//time_point<system_clock>
 		const time_point<system_clock> tStart = chrono::system_clock::now();
-		string outfile = name + ".output";
-		ofstream ofstr(outfile, ios::binary);	
+		//string outfile = name + ".output";
+		//ofstream ofstr(outfile, ios::binary);	
 		for(int steps  = 0; steps < 10; steps++){
+			cout << "step " << steps << endl;
 			elves.makeProposes();
 			elves.resolveCollisions();
-			elves.printMap(ofstr);
-			elves.printMap(cout);
+			// elves.printMap(ofstr);
+			// elves.printMap(cout);
 		}
-		ofstr.close();
+		//ofstr.close();
 		const time_point<system_clock> tEnd = chrono::system_clock::now();
 		timeInterval = tEnd - tStart;
 	}
@@ -285,9 +292,9 @@ class cSolve{
 int main(void){
 	long long result;
 	string names[] = {"test1", "test2", "cond"};
-	int answers[] = {-1,-1,-1};
+	int answers[] = {25, 110, 3757};
 	
-	for(int i = 0; i < 3; i++){
+	for(int i = 2; i < 3; i++){
 		cSolve test1(names[i]);
 		test1.solve();
 		result = test1.getResult();
