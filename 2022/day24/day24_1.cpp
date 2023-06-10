@@ -181,11 +181,14 @@ class cContainer{
 	}
 
 	void solidifyVolume(void){
-		dist.resize(depth);
+		dist.resize(depth, 
+					vector<vector<int>>(height,
+					vector<int> (width, INT_MAX) ) );
+		// dist.resize(depth); 
 		for(int z = 0; z < depth; z++){
-			dist[z].resize(height);
+			// dist[z].resize(height);
 			for(int y = 0; y < height; y++){
-				dist[z][y].resize(height, INT_MAX);
+				// dist[z][y].resize(width, INT_MAX);
 				for(int x = 0; x < width; x++){
 					if(volume[z][y][x] != 0){
 						volume[z][y][x] = 0x10;
@@ -233,11 +236,44 @@ class cContainer{
 	bool isFinished(c3Point &s){
 		return s.y == (height - 1);
 	}
+
+	// ~cContainer(void){
+	// 	// vector<vector<vector<uint8_t>>> volume;
+	// 	for(auto itz = volume.begin(); itz != volume.end(); itz++){
+	// 		for(auto ity = itz->begin(); ity != itz->end(); ity++){
+	// 			ity->clear();
+	// 		}
+	// 		itz->clear();
+	// 	}
+	// 	volume.clear();
+		
+	// 	// vector<vector<vector<int>>> dist;
+	// 	for(auto itz = dist.begin(); itz != dist.end(); itz++){
+	// 		for(auto ity = itz->begin(); ity != itz->end(); ity++){
+	// 			ity->clear();
+	// 		}
+	// 	}
+	// 	for(auto itz = dist.begin(); itz != dist.end(); itz++){
+	// 		try{
+	// 			itz->clear();
+	// 		}catch(const std::exception& e){
+	// 			cout << "ayayay: " << e.what() << endl;
+	// 			throw;
+	// 		}
+	// 	}
+	// 	dist.clear();
+	// 	points.clear();
+	// 	verticalBorder.clear();
+	// }
 };
 
 class cSolve{
 	string name;
-	system_clock::duration timeInterval;
+	time_point<system_clock> tStart;
+	time_point<system_clock> tReaded;
+	time_point<system_clock> tFormed;
+	time_point<system_clock> tSolved;
+	
 	cContainer vol;
 	int steps;
 
@@ -245,6 +281,7 @@ class cSolve{
 	cSolve(const string& filename){
 		name = filename;
 		steps = -2;
+		tStart = chrono::system_clock::now();
 		ifstream ifstr(name + ".input", ios::binary);			
 		string line;
 		vector<vector<uint8_t>> surface;
@@ -259,7 +296,9 @@ class cSolve{
 			surface.push_back(move(buf));
 		}
 		ifstr.close();
+		tReaded = chrono::system_clock::now();
 		vol.init(surface);
+		tFormed = chrono::system_clock::now();
 		ofstream ofstr(name + ".map", ios::binary);
 		vol.print(ofstr);
 		ofstr.close();
@@ -271,7 +310,6 @@ class cSolve{
 		int zOld = -1;
 		// string outfile = name + ".output";
 		// ofstream ofstr(outfile, ios::binary);
-		const time_point<system_clock> tStart = chrono::system_clock::now();
 		que.push(c3Point(0, 0, 1));
 		//vol[&(que.top())] = 0x20;
 		while(1){
@@ -299,13 +337,24 @@ class cSolve{
 			//vol.print();
 		}
 		// ofstr.close();
-		const time_point<system_clock> tEnd = chrono::system_clock::now();
-		timeInterval = tEnd - tStart;
+		tSolved = chrono::system_clock::now();
 	}
 
 	void printUsedTime(void){
+		system_clock::duration timeInterval = tSolved - tStart;
+		system_clock::duration t1 = tReaded - tStart;
+		system_clock::duration t2 = tFormed - tReaded;
+		system_clock::duration t3 = tSolved - tFormed;
+		
 		auto dta= microseconds(duration_cast<microseconds>(timeInterval));		
+		auto dt1= microseconds(duration_cast<microseconds>(t1));
+		auto dt2= microseconds(duration_cast<microseconds>(t2));
+		auto dt3= microseconds(duration_cast<microseconds>(t3));
 		long long dt = dta.count();
+		float perc1 = (float)(dt1.count())/dta.count();
+		float perc2 = (float)(dt2.count())/dta.count();
+		float perc3 = (float)(dt3.count())/dta.count();
+		cout << "read: " << perc1 << " form: " << perc2 << " solve: " << perc3 << endl;
 		cout << "time used: ";
 		if(dt < 1000){
 			cout << dt << "us" << endl;
@@ -341,7 +390,7 @@ class cSolve{
 int main(void){
 	long long result;
 	string names[] = {"test1", "test2", "cond"};
-	int answers[] = {10, 18, -1};
+	int answers[] = {10, 18, 334};
 	
 	for(int i = 0; i < 3; i++){
 		cSolve test1(names[i]);
@@ -355,6 +404,6 @@ int main(void){
 		}
 		cout << names[i] + " passed" << endl;
 	}
-		cout<<"there are "<<result<<" in result"<<endl;
+	cout<<"there are "<<result<<" in result"<<endl;
 	return 0;
 }
