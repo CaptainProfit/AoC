@@ -4,8 +4,8 @@
 //18446744073709551615 - ULLONG_MAX
 #include <cassert>
 #include <list>
-#include <set>
-#include <map>
+#include <unordered_set>
+#include <unordered_map>
 #include <string>
 #include <vector>
 #include <chrono>
@@ -31,26 +31,16 @@ const pair<uint8_t, int> dirMask[] = {
 struct cPoint{
 	int y;
 	int x;
-	int propose;
-	list<int> order;
-
+	
 	cPoint(int _y, int _x, int prop = -1){
 		y = _y;
 		x = _x;
-		propose = prop;
-		order = {0, 1, 3, 4, 2};
 	}
 
 	cPoint& operator+=(const cPoint& rhs){
 		y += rhs.y;
 		x += rhs.x;
 		return *this;
-	}
-
-	void acceptPropose(){
-		order.remove(propose);
-		order.push_back(propose);
-		propose = -1;
 	}
 
 	const int getX() const {
@@ -71,6 +61,16 @@ struct cPoint{
 bool operator<(const cPoint& lhs, const cPoint& rhs){
 	return lhs.compareWith(rhs) < 0; 
 }
+bool operator==(const cPoint& lhs, const cPoint& rhs){
+	return lhs.compareWith(rhs) == 0;
+}
+
+template<>
+struct std::hash<cPoint> {
+	std::size_t operator()(const cPoint& k) const {
+		return k.y * 223	 + k.x; //* 1129
+	}
+};
 
 const cPoint dir[] = {
 	{-1,  0}, //N
@@ -85,11 +85,15 @@ const cPoint dir[] = {
 };
 
 class cContainer{
-	set<cPoint> points;
+	unordered_set<cPoint> points;
+	unordered_set<cPoint> nextPoints;
 	int minX, maxX, minY, maxY;
 	string verticalBorder;
 	bool differentState = true;
-	map<cPoint, list<cPoint>> proposes;
+	unordered_map<cPoint, list<cPoint>> proposes;
+	list<int> totOrder = {0, 1, 3, 4, 2};
+	
+	public:
 
 	void updateSizes(void){
 		minX = INT_MAX;
@@ -105,8 +109,6 @@ class cContainer{
 		}
 		verticalBorder = "+" + string(maxX - minX + 1, '-') + "+";
 	}
-
-	public:
 	
 	void addNewPoint(int y, int x){
 		points.emplace(y, x);
@@ -119,7 +121,7 @@ class cContainer{
 		for(const cPoint &it:points){
 			ostr << " (" << it.y << ", " << it.x << ")" << endl;
 		}
-		ostr << "map: " << endl;
+		ostr << "unordered_map: " << endl;
 		ostr << verticalBorder << endl;
 		for(int j = minY; j <= maxY; j++){
 			string line(maxX - minX + 1, ' ');
@@ -133,68 +135,92 @@ class cContainer{
 		ostr << verticalBorder << endl;
 	}
 
-	void clear(void){
-		points.clear();
-		proposes.clear();
-	}
+	// void clear(void){
+	// 	points.clear();
+	// 	proposes.clear();
+	// }
 
 	void makeProposes(){
-		LOG_LIFE_TIME_DURATION("makeProposes");
+		LOG_LIFE_TIME_DURATION("1) makeProposes");
 		differentState = false;
-		for(set<cPoint>::iterator it = points.begin(); it != points.end(); it++){
+		for(unordered_set<cPoint>::iterator it = points.begin(); it != points.end(); it++){
 			uint8_t mask = 0;
+			{
 			//осматриваю границы.
-			for(int k = 0; k < 8; k++){
-				cPoint scanPos(*it);
-				scanPos += dir[k];
-				if(points.find(scanPos) != points.end()){
-					mask |= 1 << k;
+				LOG_LIFE_TIME_DURATION("1.1) borders scans");
+				for(int k = 0; k < 8; k++){
+					cPoint scanPos(*it);
+					scanPos += dir[k];
+					if(points.find(scanPos) != points.end()){
+						mask |= 1 << k;
+					}
 				}
 			}
 
-			//делаю предположение, куда пытаюсь перейти.
-			bool proposed = false;
-			for(list<int>::const_iterator it2 = it->order.begin(); it->order.end() != it2; it2++){
-				if( (mask & dirMask[*it2].first) == 0){
-					cPoint scanPos(*it);
-					scanPos += dir[dirMask[*it2].second];
-					scanPos.propose = *it2;
-					proposes[scanPos].push_back(*it);
-					proposed = true;
-					break;
+			{
+				//делаю предположение, куда пытаюсь перейти.
+				LOG_LIFE_TIME_DURATION("1.2) add proposes");
+				bool proposed = false;
+				for(list<int>::const_iterator it2 = totOrder.cbegin(); totOrder.cend() != it2; it2++){
+					if( (mask & dirMask[*it2].first) == 0){
+						proposed = true;
+						if(*it2 == 0){
+							nextPoints.emplace(*it);
+							break;
+						}
+						LOG_LIFE_TIME_DURATION("1.2.1) prop passes");
+						cPoint scanPos(*it);
+						scanPos += dir[dirMask[*it2].second];
+						// scanPos.propose = *it2;
+						{
+							LOG_LIFE_TIME_DURATION("1.2.2) push_back proposes");
+							proposes[scanPos].push_back(*it);
+						}
+						break;
+					}
 				}
-			}
-			if(!proposed){
-				proposes[*it].push_back(*it);
+				if(!proposed){
+					LOG_LIFE_TIME_DURATION("1.2.3) push_back alternative propose");
+					nextPoints.emplace(*it);
+					//proposes[*it].push_back(*it);
+				}
 			}
 		}
 	}
 	
 	void resolveCollisions(void){
-		LOG_LIFE_TIME_DURATION("resolveCollisions");
-		set<cPoint> nextPoints;
+		LOG_LIFE_TIME_DURATION("2) resolveCollisions");
 		//1) перебираю штуки. составляю список претендентов.
-		for(map<cPoint, list<cPoint>>::iterator it = proposes.begin(); it != proposes.end(); it++){
+		for(unordered_map<cPoint, list<cPoint>>::iterator it = proposes.begin(); it != proposes.end(); it++){
 			
 			if(it->second.size() == 1){
 				//1) на точку претендует ктото один - нет коллизий, 
+				LOG_LIFE_TIME_DURATION("2.2) add new point");
 				cPoint newPoint(it->first);
-				newPoint.acceptPropose();
 				nextPoints.emplace(newPoint);
-				//it++;
 			}
 			else{
 				//2) на точку претендует несколько типов - всем отказываю.
+				LOG_LIFE_TIME_DURATION("2.3) add old points");
 				for(list<cPoint>::const_iterator it2 = it->second.cbegin(); it2 != it->second.cend(); it2++){
 					nextPoints.emplace(*it2);
 				}
 			}
 		}
 		{
-			LOG_LIFE_TIME_DURATION("swapping");
-			points = move(nextPoints);
+			LOG_LIFE_TIME_DURATION("2.4) clearing proposes");
+			swap(points, nextPoints);
+			nextPoints.clear();
 			proposes.clear();
 		}
+	}
+
+	void orderChange(void){
+		auto it = totOrder.begin();
+		it++;
+		int t = *it;
+		totOrder.erase(it);
+		totOrder.push_back(t);
 	}
 
 	int getDifferentState(void){
@@ -248,6 +274,7 @@ class cSolve{
 			elves.resolveCollisions();
 			// elves.printMap(ofstr);
 			// elves.printMap(cout);
+			elves.orderChange();
 		}
 		//ofstr.close();
 		const time_point<system_clock> tEnd = chrono::system_clock::now();
@@ -285,6 +312,7 @@ class cSolve{
 	}
 
 	int getResult(void){
+		elves.updateSizes();
 		return elves.getArea() - elves.getSize();
 	}
 };
@@ -294,14 +322,14 @@ int main(void){
 	string names[] = {"test1", "test2", "cond"};
 	int answers[] = {25, 110, 3757};
 	
-	for(int i = 2; i < 3; i++){
+	for(int i = 0; i < 3; i++){
 		cSolve test1(names[i]);
 		test1.solve();
 		result = test1.getResult();
 		test1.printUsedTime();
 		test1.printUsedMemory();
 		if(result != answers[i]){
-			cout << names[i] + " failed" << result << endl;
+			cout << names[i] + " failed: " << result << endl;
 			return -2;
 		}
 		cout << names[i] + " passed" << endl;
