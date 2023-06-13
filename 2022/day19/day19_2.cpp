@@ -11,6 +11,7 @@
 #include <vector>
 #include <set>
 #include <map>
+#include <list>
 #include <unordered_set>
 #include "log_duration.h"
 #include <cassert>
@@ -24,6 +25,8 @@ typedef enum{stateWaitBlueprint, stateWaitRobot, stateWaitMaterial} eParseState;
 static long long stateCounter = 0;
 static int timeLimit = 24;
 static uint8_t bestResult = 0;
+static list<int> bestBuildOrder;
+static list<int> currentBuildOrder;
 static int secondPruneRuleHits = 0;
 static int enoughRuleHits = 0;
 static int unreachableRuleHits = 0;
@@ -97,6 +100,28 @@ class cBlueprint{
 			robot.print();
 		}
 		cout << endl;
+	}
+
+	void print(list<int>& buildOrder){
+		if(buildOrder.empty()){
+			cout << "{}";
+			return;
+		}
+		int prevRobotType = *buildOrder.begin();
+		int count = 0;
+		cout << "{";
+		for(auto robotType:buildOrder){
+			if(prevRobotType != robotType){
+				cout << count << " " << materialToStr.at(prevRobotType) << " robots, ";
+				prevRobotType = robotType;
+				count = 1;
+			}
+			else{
+				count++;
+			}
+		}
+		cout << count << materialToStr.at(prevRobotType) << " robots";
+		cout << "}";
 	}
 
 	vector<string_view> parseToWords(const string& str){
@@ -193,6 +218,26 @@ class cBlueprint{
 			return limit < bestResult;
 		}
 
+		bool strongSecondPruneRule(cBlueprint* enclose){
+			cState state(*this);
+			for(int t = time; t < timeLimit; t++){
+				state.step(1);
+			 	if(enclose->robots[3].recipe[2] <= state.resources[2]){
+					state.workers[3]++;
+					state.resources[2] -= enclose->robots[3].recipe[2];
+				}
+				if(enclose->robots[2].recipe[1] <= state.resources[1]){
+					state.workers[2]++;
+					state.resources[1] -= enclose->robots[2].recipe[1];
+				}
+				if(enclose->robots[1].recipe[0] <= state.resources[0]){
+					state.workers[1]++;
+					state.resources[0] -= enclose->robots[1].recipe[0];
+				}
+			}
+			return state.resources[3] < bestResult;
+		}
+
 		void step(cBlueprint* enclose, int newRobotType){
 			for(int i=0; i<4; i++){
 				resources[i] += workers[i];
@@ -229,15 +274,20 @@ class cBlueprint{
 				}
 				cState newState(*this);
 				newState.step(steps);
-				if(newState.secondPruneRule()){
+				if(newState.strongSecondPruneRule(enclose)){
 					secondPruneRuleHits++;
 					continue;
 				}
+				currentBuildOrder.push_back(newRobotType);
 				newState.step(enclose, newRobotType);
 				newState.expand(enclose);
+				currentBuildOrder.pop_back();
 			}
 			step(timeLimit - time);
-			bestResult = max(bestResult, resources[3]);
+			if(bestResult < resources[3]){
+				bestResult = resources[3];
+				bestBuildOrder = currentBuildOrder;
+			}
 		}
 	};	
 
@@ -314,9 +364,11 @@ class cBlueprint{
 		}
 		cout << "states visited: " << stateCounter << endl; //state.counter
 		cout << "quality is: " << quality << endl;
+		cout << "build order is: "; print(bestBuildOrder); cout << endl;
 		cout << "enough rule hits: " << enoughRuleHits << endl;
 		cout << "second rule hits: " << secondPruneRuleHits << endl;
 		cout << "unreach rule hits: " << unreachableRuleHits << endl;
+		cout << "--------------------------------------------------" << endl;
 	}
 
 	long long getID(void){
