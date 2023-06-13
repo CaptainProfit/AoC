@@ -2,13 +2,16 @@
 //problem - https://adventofcode.com/2022/day/x
 //2147483647 - LONG_MAX
 //18446744073709551615 - ULLONG_MAX
+#include <cmath>
 #include <chrono> 
 #include <iostream> 
 #include <fstream>
+#include <algorithm>
 #include <string>
 #include <vector>
 #include <set>
 #include <map>
+#include <unordered_set>
 #include "log_duration.h"
 #include <cassert>
 #define ull unsigned long long
@@ -20,7 +23,10 @@ typedef enum{caseBlueprint, caseEach, caseRobot, caseOre, caseClay, caseObsidian
 typedef enum{stateWaitBlueprint, stateWaitRobot, stateWaitMaterial} eParseState;
 static long long stateCounter = 0;
 static int timeLimit = 24;
-static int bestResult = 0;
+static uint8_t bestResult = 0;
+static int secondPruneRuleHits = 0;
+static int enoughRuleHits = 0;
+static int unreachableRuleHits = 0;
 const set<char> spaces = {
 	' ',
 	'\t',
@@ -125,25 +131,60 @@ class cBlueprint{
 	struct cState{
 		// static long long counter;
 		// static int bestResult;
-		vector<int> resources;
-		vector<int> workers;
-		int time;
+		vector<uint8_t> resources;
+		vector<uint8_t> workers;
+		uint8_t time;
 		
-		bool isCanBuild(cBlueprint* enclose, int newRobotType){
-			if(newRobotType == -1){
-				return true;
+		uint64_t serialize(void){
+			uint64_t ser= 0;
+			for(int i = 0; i < 4; i++){
+				ser += resources[i] + (workers[i] << 8);
+				ser <<= 16;
 			}
+			return ser;
+		}
+
+		void deserialize(uint64_t ser){
+			for(int i = 3; i >= 0; i--){
+				resources[i] = ser&0xFF;
+				ser >>= 8;
+				workers[i] =  ser&0xFF;
+				ser >>= 8;
+			}
+		}
+		void step(int steps){
+			for(int i =0; i <4; i++){
+				resources[i] += workers[i]*steps;
+			}
+			time+= steps;
+		}
+
+		int stepsToBuild(cBlueprint* enclose, int newRobotType){
+			// if(newRobotType == -1){
+			// 	return true;
+			// }
+			int steps = 0;
 			for(int i=0; i<4; i++){
-				if(enclose->robots[newRobotType].recipe[i] > resources[i]){
-					return false;
+				if(enclose->robots[newRobotType].recipe[i] == 0){
+					continue;
 				}
+				if(workers[i] == 0){
+					return -1;
+				}
+				float val = enclose->robots[newRobotType].recipe[i] - resources[i];
+				if(val < 0){
+					continue;
+				}
+				steps = max(steps, (int)(ceil(val/workers[i])));
 			}
-			return true;
+			if(time + steps >= timeLimit ){
+				return -1;
+			}
+			return steps;
 		}
 
 		bool isEnough(cBlueprint* enclose, int newRobotType){
-			return (newRobotType != -1) && 
-					(enclose->maximalDemands[newRobotType] <= workers[newRobotType]);
+			return enclose->maximalDemands[newRobotType] <= workers[newRobotType];
 		}
 
 		bool secondPruneRule(void){
@@ -173,37 +214,32 @@ class cBlueprint{
 			//counter = 0;
 			stateCounter = 0;
 		}
-		
-		int expand(cBlueprint *enclose){
+
+		void expand(cBlueprint *enclose){
 			stateCounter++;
-			if(time == timeLimit){
-				return resources[3];
-			}
-			int bestValue = -1;
-			for(int newRobotType = 3; newRobotType >=-1; newRobotType--){
+			for(int newRobotType = 3; newRobotType >=0; newRobotType--){
+				if(isEnough(enclose, newRobotType)){
+					enoughRuleHits++;
+					continue;
+				}
+				int steps = stepsToBuild(enclose, newRobotType);
+				if(steps == -1){
+					unreachableRuleHits++;
+					continue;
+				}
 				cState newState(*this);
-				if(!newState.isCanBuild(enclose, newRobotType)){
-					continue;
-				}
-				if(newState.isEnough(enclose, newRobotType)){
-					continue;
-				}
+				newState.step(steps);
 				if(newState.secondPruneRule()){
+					secondPruneRuleHits++;
 					continue;
 				}
 				newState.step(enclose, newRobotType);
-				int result = newState.expand(enclose);
-				if(bestValue < result){
-					bestValue = result;
-					
-				}
+				newState.expand(enclose);
 			}
-			if(bestResult < bestValue){
-				bestResult = bestValue;
-			}
-			return bestValue;
+			step(timeLimit - time);
+			bestResult = max(bestResult, resources[3]);
 		}
-	};
+	};	
 
 	public:
 	cBlueprint(const string& str){
@@ -212,6 +248,7 @@ class cBlueprint{
 		eParseState state = stateWaitBlueprint;
 		int robotIt = -1;
 		timeLimit = 24;
+		quality = 0;	
 		robots.resize(4);
 		for(int i = 0; i < words.size(); i++){
 			if(strToCase.count(string(words[i])) == 0){
@@ -266,13 +303,20 @@ class cBlueprint{
 		int result = -1;
 		timeLimit = 24;
 		bestResult = 0;
+		secondPruneRuleHits = 0;
+		enoughRuleHits = 0;
+		unreachableRuleHits = 0;
 		cState state;
 		{
 			LOG_DURATION("calculating blueprint");
-			quality = state.expand(this);
+			state.expand(this);
+			quality = bestResult;
 		}
 		cout << "states visited: " << stateCounter << endl; //state.counter
 		cout << "quality is: " << quality << endl;
+		cout << "enough rule hits: " << enoughRuleHits << endl;
+		cout << "second rule hits: " << secondPruneRuleHits << endl;
+		cout << "unreach rule hits: " << unreachableRuleHits << endl;
 	}
 
 	long long getID(void){
@@ -301,7 +345,7 @@ class cSolve{
 		string acc;
 		for(getline(ifstr, line); !ifstr.eof(); getline(ifstr, line)){
 			acc += line;
-			if(line.compare("\r") == 0){
+			if(line.compare("\r") == 0 || line.compare("") == 0){
 				blueprints.push_back(acc);
 				acc = "";	
 			}
@@ -364,7 +408,7 @@ class cSolve{
 int main(void){
 	long long result;
 	string names[] = {"test", "cond"};
-	int answers[] = {33, -1}; 
+	int answers[] = {33, 1127}; 
 	
 	for(int i = 0; i < 2; i++){
 		cSolve test1(names[i]);
