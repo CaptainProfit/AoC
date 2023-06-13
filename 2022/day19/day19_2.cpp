@@ -247,7 +247,7 @@ class cBlueprint{
 		vector<string_view> words(parseToWords(str));
 		eParseState state = stateWaitBlueprint;
 		int robotIt = -1;
-		timeLimit = 24;
+		timeLimit = 32;
 		quality = 0;	
 		robots.resize(4);
 		for(int i = 0; i < words.size(); i++){
@@ -301,7 +301,7 @@ class cBlueprint{
 
 	void calcQuality(void){
 		int result = -1;
-		timeLimit = 24;
+		timeLimit = 32;
 		bestResult = 0;
 		secondPruneRuleHits = 0;
 		enoughRuleHits = 0;
@@ -343,16 +343,23 @@ class cSolve{
 		ifstream ifstr(name + ".input", ios::binary);			
 		string line;
 		string acc;
+		int cnt = 0;
 		for(getline(ifstr, line); !ifstr.eof(); getline(ifstr, line)){
 			acc += line;
 			if(line.compare("\r") == 0 || line.compare("") == 0){
 				blueprints.push_back(acc);
-				acc = "";	
+				acc = "";
+				cnt++;
+				if(cnt > 2){
+					break;
+				}
 			}
 			// do something
 		}
 		if(acc.length() != 0){
-			blueprints.push_back(acc);
+			if(cnt <= 2){
+				blueprints.push_back(acc);
+			}
 		}
 		ifstr.close();
 	}
@@ -396,9 +403,9 @@ class cSolve{
 	}
 
 	int getResult(void){
-		long long result = 0;
+		long long result = 1;
 		for(auto bp:blueprints){
-			result += bp.getQuality() * bp.getID();
+			result *= bp.getQuality();
 		}
 		//elves.updateSizes();
 		return result;
@@ -408,7 +415,7 @@ class cSolve{
 int main(void){
 	long long result;
 	string names[] = {"test", "cond"};
-	int answers[] = {33, 1127}; 
+	int answers[] = {56*62, 21546}; // интеерсно, что второй день считался в 10 раз дольше остальных
 	
 	for(int i = 0; i < 2; i++){
 		cSolve test1(names[i]);
