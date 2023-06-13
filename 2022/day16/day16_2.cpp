@@ -189,6 +189,12 @@ class cGraph{
 };
 
 static vector<int> currentOrder;
+static int statesVisited = 0;
+static time_point<system_clock> t1;
+static time_point<system_clock> t2;
+
+
+
 struct cState{
 	long long flow = 0;
 	long long releasedPressure = 0;
@@ -201,6 +207,8 @@ struct cState{
 	
 	cState(cGraph& graph, int agentAmount_){
 		agentAmount = agentAmount_;
+		statesVisited = 0;
+		t1 = chrono::system_clock::now();
 		currentOrder.clear();
 		currentNodes.resize(agentAmount, graph.name2id["AA"]);
 		inTheWay.resize(agentAmount, 0);
@@ -213,8 +221,22 @@ struct cState{
 			}
 		}
 	}
+	void printStateCounter(int bestResult){
+		t2 = chrono::system_clock::now();
+		system_clock::duration timeInterval = t2 - t1;
+		auto dta= microseconds(duration_cast<microseconds>(timeInterval));		
+		long long dt = dta.count()/1000000;
+		if(statesVisited % 1000000 == 0){
+			cout << "time: " << dt << " s" << endl;
+			cout << "states: " << statesVisited/1000000 << " M" << endl;
+			cout << "best for now: " << bestResult << endl;
+			cout << "------------" << endl;
+		}
+	}
 
 	void expand(cGraph* enclose){
+		statesVisited++;
+		printStateCounter(enclose->bestResult);
 		int skippedTime = INT_MAX;
 		for(int agent = 0; agent < agentAmount; agent++){
 			if(mutedAgents[agent]){
@@ -308,6 +330,7 @@ class cSolve{
 		graph.bestResult = 0;
 		cState state(graph, 2);
 		state.expand(&graph);
+		cout << "states visited: " << statesVisited << endl;
 		tEnd = chrono::system_clock::now();
 	}
 
@@ -354,6 +377,10 @@ int main(void){
 	string names[] = {"test", "cond"};
 	// int answers[] = {1651, 2124}; 
 	int answers[] = {1707, -1}; 
+	//states visited: 193 M
+	// time used: 28min
+	// 2653 - too low
+	// 2729 - too low
 	
 	for(int i = 0; i < 2; i++){
 		cSolve test1(names[i]);
