@@ -197,12 +197,14 @@ struct cState{
 	vector<int> currentNodes;
 	vector<int> inTheWay;
 	vector<bool> openValves;
+	vector<bool> mutedAgents;
 	
 	cState(cGraph& graph, int agentAmount_){
 		agentAmount = agentAmount_;
 		currentOrder.clear();
 		currentNodes.resize(agentAmount, graph.name2id["AA"]);
 		inTheWay.resize(agentAmount, 0);
+		mutedAgents.resize(agentAmount, false);
 
 		openValves.resize(graph.size(), false);
 		for(auto [key, value]: graph){
@@ -215,23 +217,34 @@ struct cState{
 	void expand(cGraph* enclose){
 		int skippedTime = INT_MAX;
 		for(int agent = 0; agent < agentAmount; agent++){
+			if(mutedAgents[agent]){
+				continue;
+			}
 			skippedTime = min(skippedTime, inTheWay[agent]);
 		}
 		time += skippedTime;
 		for(int agent = 0; agent < agentAmount;agent++){
+			if(mutedAgents[agent]){
+				continue;
+			}
 			inTheWay[agent] -= skippedTime;
 		}
 		releasedPressure += flow*skippedTime;
 		
 		for(int agent = 0; agent < agentAmount;agent++){
+			if(mutedAgents[agent]){
+				continue;
+			}
 			if(inTheWay[agent] != 0){
 				continue;
 			}
 			flow += (*enclose)[currentNodes[agent]].getFlowrate();
+			bool flagAllValvesConsidered = true;
 			for(int nextNode=0; nextNode < openValves.size(); nextNode++){
 				if(openValves[nextNode]){
 					continue;
 				}
+				flagAllValvesConsidered = false;
 				int dist = enclose->getDistance(currentNodes[agent], nextNode) + 1;
 				if(time + dist > enclose->getTimelimit()){
 					continue;
@@ -247,7 +260,12 @@ struct cState{
 				newState.expand(enclose);
 				currentOrder.pop_back();
 			}
-			break;
+			if(!flagAllValvesConsidered){
+				break;
+			}
+			mutedAgents[agent] = true;
+			this->expand(enclose);
+
 		}
 
 		int dist = enclose->getTimelimit() - time;
