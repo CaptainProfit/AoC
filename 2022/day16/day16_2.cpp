@@ -192,7 +192,7 @@ static vector<int> currentOrder;
 static int statesVisited = 0;
 static time_point<system_clock> t1;
 static time_point<system_clock> t2;
-static vector<bool> openValves;
+static uint64_t openValves;
 static vector<int> mutedAgents;
 static int agentAmount = 0;
 
@@ -213,10 +213,10 @@ struct cState{
 		inTheWay.resize(agentAmount, 0);
 		mutedAgents.resize(agentAmount, 0);
 
-		openValves.resize(graph.size(), false);
+		openValves = 0;
 		for(auto [key, value]: graph){
 			if(value.getFlowrate() == 0){
-				openValves[key] = true;
+				openValves |= 1ull << key;
 			}
 		}
 	}
@@ -234,8 +234,11 @@ struct cState{
 	}
 
 	void expand(cGraph* enclose){
+		// 0) для отладки вывожу информацию раз в секунду
 		statesVisited++;
 		printStateCounter(enclose->bestResult);
+
+		// 1) проматываю время, пока ктото не дойдет до вентиля.
 		int skippedTime = enclose->getTimelimit() - time;
 		for(int agent = 0; agent < agentAmount; agent++){
 			if(mutedAgents[agent]>0){
@@ -260,33 +263,29 @@ struct cState{
 				continue;
 			}
 			flow += (*enclose)[currentNodes[agent]].getFlowrate();
-			bool flagAllValvesConsidered = true;
-			for(int nextNode=0; nextNode < openValves.size(); nextNode++){
-				if(openValves[nextNode]){
-					continue;
-				}
-				flagAllValvesConsidered = false;
-				int dist = enclose->getDistance(currentNodes[agent], nextNode) + 1;
-				if(time + dist > enclose->getTimelimit()){
-					continue;
-				}
 
-				cState newState(*this);
-				newState.currentNodes[agent] = nextNode;
-				newState.inTheWay[agent] += dist;
-				//cout << (nextNode == (*enclose)[nextNode].getId());
-				openValves[nextNode] = true;
-				currentOrder.push_back(nextNode);
-				newState.expand(enclose);
-				currentOrder.pop_back();
-				openValves[nextNode] = false;
+			if(openValves != 0){
+				for(int nextNode=0; nextNode < enclose->size(); nextNode++){
+					if((openValves & (1ull << nextNode)) != 0){
+						continue;
+					}
+					int dist = enclose->getDistance(currentNodes[agent], nextNode) + 1;
+					if(time + dist > enclose->getTimelimit()){
+						continue;
+					}
+
+					cState newState(*this);
+					newState.currentNodes[agent] = nextNode;
+					newState.inTheWay[agent] += dist;
+					//cout << (nextNode == (*enclose)[nextNode].getId());
+					openValves |= 1ull << nextNode;
+					currentOrder.push_back(nextNode);
+					newState.expand(enclose);
+					currentOrder.pop_back();
+					openValves &= ~(1ull << nextNode);
+				}
 			}
-			if(!flagAllValvesConsidered){
-				break;
-			}
-			mutedAgents[agent]++;
-			this->expand(enclose);
-			mutedAgents[agent]--;
+			
 			// вот я освободился, больше вариантов нет, 
 			// но возможно последний вентиль рядом со мной,
 			// мой напарник его занял, к нему ещё не добрался, 
@@ -297,7 +296,7 @@ struct cState{
 			}
 			int otherAgent = 1 - agent;
 			int dist = enclose->getDistance(currentNodes[agent], currentNodes[otherAgent]) + 1;
-			if(time + dist > enclose->getTimelimit()){
+			if(dist < inTheWay[otherAgent]){
 				cState newState(*this);
 				newState.currentNodes[agent] = currentNodes[otherAgent];
 				newState.inTheWay[agent] = dist;
@@ -306,7 +305,11 @@ struct cState{
 				newState.expand(enclose);
 				mutedAgents[otherAgent]--;
 			}
-			
+			else{
+				mutedAgents[agent]++;
+				this->expand(enclose);
+				mutedAgents[agent]--;
+			}
 		}
 
 		int dist = enclose->getTimelimit() - time;
@@ -345,9 +348,9 @@ class cSolve{
 	}
 
 	void solve(void){
-		graph.setTimelimit(30);
+		graph.setTimelimit(26);
 		graph.bestResult = 0;
-		cState state(graph, 1);
+		cState state(graph, 2);
 		state.expand(&graph);
 		cout << "states visited: " << statesVisited << endl;
 		tEnd = chrono::system_clock::now();
@@ -394,8 +397,8 @@ class cSolve{
 int main(void){
 	long long result;
 	string names[] = {"test", "cond"};
-	int answers[] = {1651, 2124}; 
-	//int answers[] = {1707, -1}; 
+	//int answers[] = {1651, 2124}; 
+	int answers[] = {1707, -1}; 
 	//states visited: 193 M
 	// time used: 28min
 	// 2653 - too low
