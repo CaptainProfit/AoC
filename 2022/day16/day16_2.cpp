@@ -398,7 +398,7 @@ int main(void){
 	long long result;
 	string names[] = {"test", "cond"};
 	//int answers[] = {1651, 2124}; 
-	int answers[] = {1707, -1}; 
+	int answers[] = {1707, 2775}; 
 	//states visited: 193 M
 	// time used: 28min
 	// 2653 - too low
