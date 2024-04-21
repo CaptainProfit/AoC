@@ -348,6 +348,6 @@ int main(void){
 		}
 		cout << names[i] + " passed" << endl;
 	}
-		cout<<"there are "<<result<<" in result"<<endl;
+	cout<<"there are "<<result<<" in result"<<endl;
 	return 0;
 }
