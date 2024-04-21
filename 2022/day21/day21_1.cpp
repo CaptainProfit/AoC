@@ -15,12 +15,13 @@ using namespace std;
 int readFileToSMt(){	
 	string line;
 	ifstream ifstr("cond.input", ios::binary);
-	do{
-			getline(ifstr, line);
-			// do something
-	}while(!ifstr.eof());
-	ifstr.close();
-	
+	while(1){
+		getline(ifstr, line);
+		if(ifstr.eof()){
+			ifstr.close();
+			break;
+		}
+	}
 	return 0;
 }
 
