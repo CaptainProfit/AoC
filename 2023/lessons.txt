@@ -1,20 +1,15 @@
 day1 solving
-need to train string library methods
-need to train chrono library methods
-thread pool didn't give much speedup when speed limited by memory access
-системные вызовы так же сильно тормозят потоки, в частности вывод на экран
-флаги компиляции сильно влияют оценочно в полтора раза
-
-template<typename RandomIt>
-int parallel_sum(RandomIt beg, RandomIt end)
-{
-    auto len = end - beg;
-    if (len < 1000)
-        return std::accumulate(beg, end, 0);
- 
-    RandomIt mid = beg + len / 2;
-    auto handle = std::async(std::launch::async,
-                             parallel_sum<RandomIt>, mid, end);
-    int sum = parallel_sum(beg, mid);
-    return sum + handle.get();
-}
+- need to train string library methods
+- need to train chrono library methods
+- thread pool didn't give much speedup when speed limited by memory access
+- системные вызовы так же сильно тормозят потоки, в частности вывод на экран
+- флаги компиляции сильно влияют оценочно в полтора раза
+- можно сделать спараллеленый аккумулятор, но для ~1000 элементов быстрее счет в лоб
+- в линуксе прирост почти в 4 раза для второй версии, в 2 раза для первой.
+- запустить msvc в винде это тот ещё геморрой - об собственный антивирус спотыкается
+- в винде код работает хуже
+- в винде прирост от потоков есть в 2 раза
+- установка clang это просто. 
+- программа скомпилированая с clang работает так же долго, как и программа скомпилированная msvc. Но лучше оптимизируется - в 2.5 раза
+- string wiev to int https://stackoverflow.com/questions/56634507/safely-convert-stdstring-view-to-int-like-stoi-or-atoi
+- регулярки из стандартной либы отсосали, нет лукбехинда... CTRE или boost:regex

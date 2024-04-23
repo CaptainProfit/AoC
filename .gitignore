@@ -5,3 +5,7 @@
 /2022/day20/obj/*.o
 *.output
 /2023/session.cookie
+/2023/day1/msvcProject/*
+/2023/day1/msvcProject
+/2023/day1/test-msvc/
+/2023/day1/test-msvc/*
