@@ -12,4 +12,5 @@ day1 solving
 - установка clang это просто. 
 - программа скомпилированая с clang работает так же долго, как и программа скомпилированная msvc. Но лучше оптимизируется - в 2.5 раза
 - string wiev to int https://stackoverflow.com/questions/56634507/safely-convert-stdstring-view-to-int-like-stoi-or-atoi
-- регулярки из стандартной либы отсосали, нет лукбехинда... CTRE или boost:regex
+- регулярки из стандартной либы недоделаны и заброшены, нет лукбехинда. Use CTRE или boost:regex instead
+- корутины, генераторы, асинки с трудом запускаются.

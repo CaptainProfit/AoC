@@ -18,7 +18,7 @@
 
 using namespace std;
 using namespace chrono;
-const int max_rgb[] = {12, 13, 14};
+
 const map<string_view, int> rgbStrings = {{"red", 0}, {"green", 1}, {"blue",2}};
 const vector<string> sampleDelims = {"; "s, "\n"s, "\r"s, "\n\r"s, "\r\n"s};
 const vector<string> cubeDelims = {"; "s, ", "s, "\n"s, "\r"s, "\n\r"s, "\r\n"s};
@@ -65,16 +65,14 @@ class cSolve{
 		return {offset, sample};
 	}
 
-	bool checkSample(int rgb[]) {
+	void updateMax(int rgb[], int max_rgb[]) {
 		for (int i = 0; i < 3; i++) {
-			if (rgb[i] > max_rgb[i]) {
-				return false;
-			}
+			max_rgb[i] = max(max_rgb[i], rgb[i]);
 		}
-		return true;
 	}
 
 	int solveLine(const string& line) {
+		int max_rgb[3] = {0};
 		string_view sw1(line);
 		int len = sw1.length();
 		int a1 = sw1.find("Game "s);
@@ -90,11 +88,9 @@ class cSolve{
 				auto [rgb_index, value] = analyzeCube(cube);
 				rgb[rgb_index] = value;
 			}
-			if (!checkSample(rgb)) {
-				return 0;
-			}
+			updateMax(rgb, max_rgb);
 		}
-		return number;
+		return max_rgb[0]*max_rgb[1]*max_rgb[2];
 	}
 
 	public:
@@ -143,9 +139,8 @@ class cSolve{
 int main(void) {
 	cSolve example("example.input");
 	cSolve cond("cond.input"); 
-	// 2206 - too low
-	// 2206*30 - too high
-	// 2278 correct
+	// 67953 correct
+	
 	//time: 
 	example.solve();
 	cond.solve();
