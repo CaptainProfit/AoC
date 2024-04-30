@@ -46,7 +46,10 @@ class cSolve{
 	pair<int, int> findNumber(const string& line, int offset = 0) {
 		int j_begin = line.find_first_of(digits_str, offset);
 		int j_end = line.find_first_not_of(digits_str, j_begin);
-		return {j_begin, j_end};
+		if (j_end == -1) {
+			j_end = line.length();
+		}
+		return {j_begin,j_end};
 	}
 
 	int solveLine(int i) {

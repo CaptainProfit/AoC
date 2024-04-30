@@ -9,3 +9,6 @@
 /2023/day1/msvcProject
 /2023/day1/test-msvc/
 /2023/day1/test-msvc/*
+*.dtmp
+*.bkp
+*.obj
