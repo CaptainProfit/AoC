@@ -14,13 +14,12 @@
 #include <vector>
 
 #define ull unsigned long long
-#define RUNS_AMOUNT 30
+#define RUNS_AMOUNT 1
 //#define VERBOSE
 
 using namespace std;
 using namespace chrono;
 
-const set<char> not_interesting_symbols {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '\n', '\r'};
 string digits_str = "01234567890"s;
 
 class cSolve{
@@ -70,7 +69,7 @@ class cSolve{
 			vector<int> numbers_around;
 			for (int number: checkArea(i, j_star - 1, j_star - 1))
 				numbers_around.emplace_back(number);
-			for (int number: checkArea(i, j_star + 1, j_star - 1))
+			for (int number: checkArea(i, j_star + 1, j_star + 1))
 				numbers_around.emplace_back(number);
 			for (int number: checkArea(i - 1, j_star - 1, j_star + 1))
 				numbers_around.emplace_back(number);
@@ -78,6 +77,7 @@ class cSolve{
 				numbers_around.emplace_back(number);
 
 			if (numbers_around.size() == 2) {
+				cout << "\t" << i << ", " << j_star << ": " << numbers_around[0] << ", " << numbers_around[1] << endl;
 			 	result += numbers_around[0] * numbers_around[1];
 			}
 		}
@@ -140,6 +140,7 @@ int main(void) {
 	cSolve cond("cond.input");
 	// 58910367 - too low
 	// 62339684 - too low
+	// 69527306 - correct
 	example.solve();
 	cond.solve();
 	cout << endl;
