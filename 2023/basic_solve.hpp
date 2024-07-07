@@ -22,7 +22,7 @@ vector<string_view> split (const t_string& str,const u_string& tmp, bool skipEmp
 	vector<string_view> result;
 	int leftIter = 0;
 	for (int iter = 0; iter < _str.length(); iter++) {
-		if (_tmp.find(_str[iter]) != _tmp.end()) {
+		if (_tmp.find(_str[iter]) != -1) {
 			if (!skipEmpty || leftIter != iter) {
 				result.push_back(_str.substr(leftIter, leftIter - iter));
 			}
@@ -45,18 +45,18 @@ int toInt (const t_string& str) {
 	return value;
 }
 
-template<typename t_result>
+template<typename t_result, auto solveLine>
 class BasicSolve{
+	public:
 	vector<string> lines;
 	vector<t_result> results;
 	t_result total_result;
 	string name;
 	high_resolution_clock::duration work_time;
 
-	virtual t_result solveLine(const string& line);
+	//virtual t_result solveLine(const string& line);
 
-	public:
-	BasicSolve(string _name) 
+	BasicSolve(const string& _name)
 		:name(_name){
 		total_result = -2;
 		try {

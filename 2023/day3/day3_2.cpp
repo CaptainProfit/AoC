@@ -137,6 +137,7 @@ class cSolve{
 
 int main(void) {
 	cSolve example("example.input");
+	// 467835
 	cSolve cond("cond.input");
 	// 58910367 - too low
 	// 62339684 - too low
