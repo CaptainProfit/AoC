@@ -1,7 +1,7 @@
 //[UTF-8 en/ru]
 #include "orderedTree.hpp"
 using namespace std;
-template class cContainer<int>;
+// template class cContainer<int>;
 
 /************************************************************
 * @group группа функций восстановления инвариантов
@@ -11,8 +11,8 @@ template class cContainer<int>;
 ************************************************************/
 
 // вычисляет инварианты и запоминает в вершине
-template<>
-void cContainer<int>::calculateInvariant(){
+
+void cContainer::cTreeNode::calculateInvariant(){
 	int leftH = 0, rightH = 0, leftSize = 0, rightSize = 0;
 	if(left != nullptr){
 		leftH = left->height;
@@ -30,9 +30,9 @@ void cContainer<int>::calculateInvariant(){
 // -1 если правая ветвь слишком большая
 // 0 ветви сбалансированы
 // 1 если левая ветвь слишком большая
-template<>
-int cContainer<int>::checkBalance(){
-	int leftH = 0, rightH = 0;
+
+int cContainer::cTreeNode::checkBalance(){
+    int leftH = 0, rightH = 0;
 	if(left != nullptr){
 		leftH = left->height;
 	}
@@ -43,13 +43,13 @@ int cContainer<int>::checkBalance(){
 }
 
 //восстанавливает сбалансированость
-template<>
-void cContainer<int>::restoreInvariants(){
+
+void cContainer::cTreeNode::restoreInvariants() {
 	// высоты по правилам АВЛ
 	// размеры - сначала вдоль АВЛ, потом до корня
-	if(isEmpty())
-		return;
-	for(cContainer* it = this;; it = it->parent){
+	// if(isEmpty())
+	// 	return;
+	for(cTreeNode* it = this; ; it = it->parent){
 		it->calculateInvariant();
 		int condition = it->checkBalance();
 		if(condition <= -2){

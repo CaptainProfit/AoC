@@ -1,6 +1,6 @@
 #include <iostream>
-#include <cstdio>
 #include <cassert>
+#include <cstdio>
 #include <ext/pb_ds/assoc_container.hpp> // Общий файл. 
 #include <ext/pb_ds/tree_policy.hpp> // Содержит класс tree_order_statistics_node_update
 #include <ext/pb_ds/detail/standard_policies.hpp>
