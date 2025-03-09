@@ -16,7 +16,7 @@ using namespace std;
 using namespace __gnu_cxx;
 using namespace __gnu_pbds;
 
-typedef int Type;
+typedef long long Type;
 
 bool ProxyLess(int, int);
 struct MyLess : public binary_function<int, int, bool>
@@ -140,6 +140,30 @@ InnerImplicitTree::node_iterator GetNodeIterator(int pos) {
     assert (false);
     return tree_.node_end();
 }
+
+int GetIteratorPosition(InnerImplicitTree::node_iterator iter) {
+    int pos = 0;
+    if (iter.get_l_child() != tree_.node_end()) {
+        pos += iter.get_l_child().get_metadata();
+    }
+    auto mpnd_iter = iter.m_p_nd;
+    while (mpnd_iter->m_p_parent != nullptr) {
+        if (mpnd_iter->m_p_parent->m_p_right == mpnd_iter) {
+            if (mpnd_iter->m_p_parent->m_p_left != nullptr) {
+                pos += mpnd_iter->m_p_parent->m_p_left->m_metadata + 1;
+            }
+            else {
+                pos += 1;
+            }
+        }
+        mpnd_iter = mpnd_iter->m_p_parent;
+        if (mpnd_iter == tree_.node_begin().m_p_nd) {
+            break;
+        }
+    }
+    return pos;
+}
+
 void CompClear() {
     comp_state_ = CompState::none;
     comp_offset_ = 0;
@@ -186,14 +210,6 @@ void Remove(int pos) {
     CompClear();
 }
 
-
-// int OOK(Type key) {
-//     CompSet(-1, key, CompState::ook);
-//     int result = tree_.order_of_key(key);
-//     CompClear();
-//     return result;
-// }
-
 void Clear() {
     while (Size() != 0) {
         Remove(0);
@@ -202,7 +218,7 @@ void Clear() {
 
 void Print() {
     bool is_first = true;
-    cout << "{";
+    cout << "[";
     for(int i = 0; i < Size(); i++) {
         if(!is_first) {
             cout << ", ";
@@ -211,7 +227,7 @@ void Print() {
         // cout << ValueAtPos(i);
         cout << Find(i);
     }
-    cout << "}" << endl;
+    cout << "]" << endl;
 }
 
 void PrintTreeInner(InnerImplicitTree::node_iterator it) {
@@ -229,7 +245,6 @@ void PrintTreeInner(InnerImplicitTree::node_iterator it) {
 void PrintTree() {
     PrintTreeInner(tree_.node_begin());
 }
-
 
 class naiveSolution{
     vector<Type> naive_buf_;
@@ -293,211 +308,3 @@ public:
         return true;
     }
 };
-
-
-void TestImplicitTree() {
-    cout <<  "test implicit tree" << endl;
-    naiveSolution test;
-    for(int i = 0; i < 10; i++) {
-        ::Insert(i, 100 + i);
-        test.Insert(i, 100 + i);
-        Print();
-        assert (test.CompareWith());
-    }
-    PrintTree();
-
-    // check key orders
-    // for(int i = 0; i < 10; i++) {
-    //     cout << OOK(i) << " ";
-    // }
-    // cout << endl;1,3,5,7,9,11
-    for (int i  = 0; i < 5; i ++) {
-        Insert(1 + 2*i, 100 + 10 + i);
-        test.Insert(1 + 2*i, 100 + 10 + i);
-        Print();
-        assert (test.CompareWith());
-    }
-    // {0, 10, 1, 11, 2, 12, 3, 13, 4, 14, 5, 6, 7, 8, 9}
-
-    for (int i  = 0; i < 5; i ++) {
-        test.Insert(Size() - 2*i, 100 + 20 + i); 
-        Insert(Size() - 2*i, 100 + 20 + i); 
-        Print();
-        assert (test.CompareWith());
-    }
-    // {0, 10, 1, 11, 2, 12, 3, 13, 4, 14, 5, 24, 6, 23, 7, 22, 8, 21, 9, 20}
-
-    Insert(10, 100 + 31);
-    test.Insert(10, 100 + 31);
-    Print();
-    assert(test.CompareWith());
-    Insert(5, 100 + 32);
-    test.Insert(5, 100 + 32);
-    Print();
-    assert(test.CompareWith());
-    Insert(15, 100 + 33);
-    test.Insert(15, 100 + 33);
-    Print();
-    assert(test.CompareWith());
-    Insert(21, 100 + 34);
-    test.Insert(21, 100 + 34);
-    Print();
-    assert(test.CompareWith());
-    Insert(0, 100 + 35);
-    test.Insert(0, 100 + 35);
-    Print();
-    assert(test.CompareWith());
-    Insert(4, 100 + 36); 
-    test.Insert(4, 100 + 36); 
-    Print(); 
-    assert(test.CompareWith());
-    test.Insert(Size() - 1, 100 + 37);
-    Insert(Size() - 1, 100 + 37);
-    Print(); 
-    assert(test.CompareWith());
-    test.Insert(Size(), 100 + 38);
-    Insert(Size(), 100 + 38);
-    Print(); 
-    assert(test.CompareWith());
-
-    PrintTree(); 
-    Print(); 
-
-    Remove(0);
-    test.Remove(0);
-    Print(); // -35
-    assert(test.CompareWith());
-    
-    Remove(4);
-    test.Remove(4);
-    Print(); // -11
-    assert(test.CompareWith());
-    
-    Remove(10);
-    test.Remove(10);
-    Print(); // -4
-    assert(test.CompareWith());
-
-    Remove(3);
-    test.Remove(3);
-    Print(); // -
-    assert(test.CompareWith());
-
-    Clear();
-    test.Clear();
-    assert(test.CompareWith());
-    cout << "Hand test passed" << endl;
-}
-void TestImplicitTreePlaceAndClear() {
-    for (int i = 0; i < 3; i++) {
-        naiveSolution test;
-        for (int i  = 0; i < 100; i ++) {
-            Insert(i, 200 + i);
-            test.Insert(i, 200 + i);
-            if (!test.CompareWith()) {
-                Print();
-                assert(false);
-            }
-        }
-        Clear();
-        test.Clear();
-        assert(test.CompareWith());
-
-        for (int i  = 0; i < 100; i ++) {
-            Insert(0, 300 + i);
-            test.Insert(0, 300 + i);
-            if (!test.CompareWith()) {
-                Print();
-                assert(false);
-            }
-        }
-        Clear();
-        test.Clear();
-        assert(test.CompareWith());
-        
-        for (int i  = 0; i < 100; i ++) {
-            int pos = 0;
-            if (Size() > 0) {
-                pos = (i*i)%Size();
-            }
-            Insert(pos, 300 + i);
-            test.Insert(pos, 300 + i);
-            if (!test.CompareWith()) {
-                Print();
-                assert(false);
-            }
-        }
-        Clear();
-        test.Clear();
-        if (!test.CompareWith()) {
-            Print();
-            assert(false);
-        }
-    }
-}
-void TestImplicitTreeParam (int op_size, int est_size) {
-    std::random_device rd;  // a seed source for the random number engine
-    std::mt19937 gen(rd()); // mersenne_twister_engine seeded with rd()
-    std::uniform_int_distribution<> distrib1(0, 100);
-    std::uniform_int_distribution<> distrib2(1, 6);
-    static int i = 0;
-    Type new_val = 0;
-    naiveSolution test;
-    cout <<  "parametrized test implicit tree " << i++ << " with " << op_size << " operations and " << est_size << " estimated size of end size" << endl;
-    for (int i = 0; i < op_size; i++) {
-        int random_value = (std::rand() << 16) + std::rand();
-        bool is_insert = distrib1(gen)*2*op_size > est_size + op_size;
-        if (is_insert || Size() == 0) {
-            int pos = random_value%(test.Size() + 1);
-            test.Insert(pos, new_val);
-            Insert(pos, new_val);
-            new_val++;
-        } else {
-            int pos = random_value%(test.Size());
-            test.Remove(pos);
-            Remove(pos);
-        }
-        if (!test.CompareWith()) {
-            cout << "Test Error while";
-            if (is_insert) {
-                cout << "inserting";
-            } else {
-                cout << "removing";
-            }
-            cout << endl;
-            cout << "got: ";
-            Print();
-            assert (false);
-        }
-    }
-    test.Clear();
-    Clear();
-    if (!test.CompareWith()) {
-        cout << "Test Error while clearing" << endl;
-        cout << "waited:  ";
-        test.Print();
-        cout << "but got: ";
-        Print();
-        assert (false);
-    }
-    cout << "Test passed" << endl;
-}
-
-// estimated time of checking for 10k - 2 hour
-// estimated time of checking for 2k - 5 min
-void TestImplicitTreeHuge() {
-    for (int i = 1; i < 500; i *= 2) {
-        for (int j = 0; j < 1; j++) {
-            TestImplicitTreeParam(10*i, 1*i);
-            TestImplicitTreeParam(10*i, 5*i);
-            TestImplicitTreeParam(10*i, 9*i);
-        }
-    }
-}
-
-int main(void) {
-    TestImplicitTree();
-    TestImplicitTreePlaceAndClear();
-    TestImplicitTreeHuge();
-    cout << "All Tests passed" << endl;
-}

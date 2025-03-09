@@ -24,16 +24,19 @@ class cSolve{
     }
 
 	void print(int it = -1){
+        cout << "[";
 		for (auto i = packet.begin(); i != packet.end(); i++) {
+            if (i != packet.begin()) {
+                if(i->first == it){
+                    cout << "<";
+                }
+                else{
+                    cout << ", ";
+                }
+            }
             cout << i->second;
-			if(i->first == it){
-				cout << "<";
-			}
-			else{
-				cout << " ";
-			}
 		}
-		cout << endl;
+		cout << "]" << endl;
 	}
 
 	list<pair<int, int>>::iterator find(int queNum){
@@ -102,11 +105,16 @@ class cSolve{
 	}
 
 	int solve(){
-		for(int i = 0; i < N; i++){
-			// print(i);
+        //cout << "start:" << endl;
+        for(int i = 0; i < N; i++){
 			move(i);
+            //if (i%100 == 0) {
+            //    print();
+            //}
 		}
-		// print();
+        //cout << "finish:" << endl;
+        
+		//print();
 		return mix();
 	}
 };
@@ -114,7 +122,7 @@ class cSolve{
 int main(void){	
 	long long result;
 	const auto tstart = chrono::steady_clock::now();
-	cSolve test("test.input");
+	/*cSolve test("test.input");
 	test.solve();
 	result = test.mix();
 	
@@ -122,7 +130,7 @@ int main(void){
 		cout << "test failed (3):" << result <<endl;
 		return -2;
 	}
-	cout << "test passed " << result << endl;
+	cout << "test passed " << result << endl;*/
 
 	cSolve cond("cond.input");
 	result = cond.solve();
