@@ -75,24 +75,3 @@ void cContainer::cTreeNode::rotateRight(){
     }
     calculateInvariant();
 }
-
-// корень падает, слева внук подскакивает
-
-void cContainer::cTreeNode::rotateLeftDouble(){
-	// X->Y-<Z to X<-Z->Y
-	cTreeNode* Y = right;
-	cTreeNode* X = this;
-	//cTreeNode* Z = Y->right;
-	Y->rotateRight();
-    X->rotateLeft();
-}
-
-// корень падает, справа внук подскакивает
-void cContainer::cTreeNode::rotateRightDouble(){
-	// X->Y-<Z to X<-Z->Y
-	cTreeNode* Y = this;
-	cTreeNode* X = right;		
-	//cTreeNode* Z = X->left;
-	X->rotateLeft();
-	Y->rotateRight();
-}

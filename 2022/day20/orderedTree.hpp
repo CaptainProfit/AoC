@@ -27,10 +27,13 @@ class cContainer{
     // реализация через AVL дерево
     // признак корня - он сам себе парент.
     // признак пустого дерева - парент нулевой.
+    int offset = 1;
+    void updateOffset(int value);
     public:
     class cTreeNode{
         public:
         T value;
+        size_t iter_index;
 
         //инвариант - size = 1 + left->size + right->size
         //пустые деревья имеют размер ноль.
@@ -44,47 +47,11 @@ class cContainer{
         // методы балансировки
         void rotateLeft();
         void rotateRight();
-        void rotateLeftDouble();
-        void rotateRightDouble();
         
         public:	
         cTreeNode* parent = nullptr;
         cTreeNode* left = nullptr;
         cTreeNode* right = nullptr;
-
-        void createChild(T newVal, bool isLeft){
-            cTreeNode* newChild = new (cTreeNode);
-            newChild->value = newVal;
-            if(isLeft){
-                removeChild(left);			
-                left = newChild;
-                left->parent = this;
-            }
-            else{
-                removeChild(right);			
-                right = newChild;
-                right->parent = this;
-            }
-        }
-
-        void removeChild(bool isLeft){
-            if(isLeft){
-                if(left != nullptr){
-                    left->removeChild(left);
-                    left->removeChild(right);
-                }
-                delete left;
-                left = nullptr;
-            }
-            else{
-                if(right != nullptr){
-                    right->removeChild(left);
-                    right->removeChild(right);
-                }
-                delete right;
-                right = nullptr;
-            }
-        }
 
         ostream& print(ostream& os){
             if(left == nullptr && right == nullptr){
@@ -116,10 +83,10 @@ class cContainer{
             if (x == nullptr) {
                 return 0;
             }
-            size_t index = 0;
+            size_t index = x->left->getSize();
             while (x->parent != nullptr) {
                 if (x->parent->right == x) {
-                    index += x->left->getSize();
+                    index += x->parent->left->getSize() + 1;
                 }
                 x = x->parent;
             }
@@ -152,7 +119,7 @@ class cContainer{
     //T& operator[](int index);
     cTreeNode* operator[](int index);
 
-    void insert(int index, const T& value);
+    void insert(int index, const T& value, size_t iter_index);
     void remove(int index);
 
     //places copy of value to the end
@@ -161,21 +128,21 @@ class cContainer{
         int pos = node->getIndex();
         int value = node->getValue();
         int new_pos = (pos + value) % (sizef() - 1);
-        value += sizef() - 1;
-        value %= sizef() - 1; 
+        new_pos += sizef() - 1;
+        new_pos %= sizef() - 1; 
         remove(pos);
         cout << "after remove" << endl;
         print();
-        insert(new_pos, value);
+        insert(new_pos, value, i);
         values[i] = (*this)[new_pos];
     }
     void push_back(const T& value) {
-        insert(sizef(), value);
+        insert(sizef(), value, sizef());
         values.push_back((*this)[sizef() - 1]);
     }
     void print() {
-        printSimple();
         printTree();
+        printSimple();
     }
     void printSimple(){
         cout << "[";
@@ -202,32 +169,12 @@ class cContainer{
         cout << "+" << endl;
     }
     void printTree(){
-        int offset = 0;
-        for (size_t i = 0; i < root->getSize(); i++) {
-            int value = (*this)[i]->getValue();
-            int len = 0;
-            if (value < 0) {
-                value = -value;
-                len++;
-            }
-            do {
-                len++;
-                value /= 10;
-            } while(value > 0);
-            offset = std::max(offset, len);
-        }
+        int offset = 2;
         offset += 2;
         vector<string> canvas;
         string skip2(offset, ' ');
         stack<cNodeMarker> stack_node;
         stack_node.push({root, 0, false});
-        /*int level = 0;
-        for (cTreeNode* ptr = root; ptr != nullptr; ptr = ptr->left) {
-            stack_node.push({ptr, level, false});
-            level++;
-            canvas.push_back({});
-        }*/
-        //level = 0;
         int index = 0;
         while(!stack_node.empty()) {
             auto [ptr, level, isMarked] = stack_node.top();

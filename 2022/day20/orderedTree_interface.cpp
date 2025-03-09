@@ -9,21 +9,6 @@ using namespace std;
 typedef int T;
 //template class cContainer<int>;
 
-void replaceRelationship(cContainer::cTreeNode* parent, cContainer::cTreeNode* old_child, cContainer::cTreeNode* new_child) {
-    if (parent != nullptr) {
-        if (parent->left == old_child) {
-            parent->left = new_child;
-        }
-        else if (parent->right == old_child) {
-            parent->right = new_child;
-        }
-        else {
-            assert(0);
-        }
-    }
-    new_child->parent = parent;
-}
-
 // возвращает ссылку на элемент с данным индексом
 cContainer::cTreeNode* cContainer::operator[](int index){	
     //index++;
@@ -57,15 +42,16 @@ cContainer::cTreeNode* cContainer::operator[](int index){
 }	
 
 //template<>
-void cContainer::insert(int index, const T& value){
-    //1) структура была пуста. новый элемент теперь корень 
-    // и значит он сам себе папа
-    
+void cContainer::insert(int index, const T& value, size_t iter_index){
+    //1) структура была пуста. новый элемент теперь корень
+    updateOffset(value);
+
     cTreeNode* newElement = new cTreeNode;
     newElement->setValue(value);
     newElement->parent = nullptr;
     newElement->left = nullptr;
     newElement->right = nullptr;
+    newElement->iter_index = iter_index;
     //3) найти куда его вставить
     if(isEmpty() ){
         root = newElement;
@@ -106,14 +92,10 @@ void cContainer::remove(int index){
     //2) найти кого удаляю
     cTreeNode* marked = (*this)[index];
     assert(marked);
+    
     //3) если удаляю лист - ничего не делаю.
-    // если удаляю и нет левого потомка, но есть правый - меняю местами с правым.
-    // если удаляю и есть левый потомок - проверяю у него правого потомка.
-    // 		если есть правый - меняю с правым.
-    // 		если нет правого, но есть левый - 
-    if (marked->left != nullptr || marked->right != nullptr) {
+    while(marked->left != nullptr || marked->right != nullptr) {
         cTreeNode* it = marked;
-
         if(it->right != nullptr){
             it = it->right;
             for(; it->left != nullptr; it = it->left);
@@ -122,12 +104,17 @@ void cContainer::remove(int index){
             it = it->left;
             for(; it->right != nullptr; it = it->right);
         }
-        swap(marked->parent, it->parent);
-        swap(marked->left, it->left);
-        swap(marked->right, it->right);
+        
+        swap(it->value, marked->value);
+        swap(it->iter_index, marked->iter_index);
+        swap(values[it->iter_index], values[marked->iter_index]);
         marked = it;
     }
-    if (marked->parent != nullptr) {
+    
+    if (marked->parent == nullptr) {
+        root = nullptr;
+    }
+    else {
         if (marked->parent->left == marked) {
             marked->parent->left = nullptr;
         }
@@ -138,11 +125,19 @@ void cContainer::remove(int index){
             assert(0);
         }
         root = marked->parent->restoreInvariants();
-        //4) восстанавить инварианты
-    }
-    else {
-        root = nullptr;
-    }
-    //5) удаляю 
+    }        
     delete marked;
+}
+
+void cContainer::updateOffset(int value) {
+    int len = 0;
+    if (value < 0) {
+        value = -value;
+        len++;
+    }
+    do {
+        len++;
+        value /= 10;
+    } while(value > 0);
+    offset = std::max(offset, len);
 }
