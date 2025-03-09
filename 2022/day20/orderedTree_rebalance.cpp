@@ -45,38 +45,26 @@ int cContainer::cTreeNode::checkBalance(){
 
 //восстанавливает сбалансированость
 
+// высоты по правилам АВЛ
+// размеры - сначала вдоль АВЛ, потом до корня
 cContainer::cTreeNode* cContainer::cTreeNode::restoreInvariants() {
-	// высоты по правилам АВЛ
-	// размеры - сначала вдоль АВЛ, потом до корня
-	// if(isEmpty())
-	// 	return;
     assert(this);
-    //calculateInvariant();
 	for (cTreeNode* it = this; it != nullptr; it = it->parent) {
         it->calculateInvariant();
 		int condition = it->checkBalance();
 		if(condition <= -2){
-			// правое поддерево выше левого
 			if(it->right->checkBalance() > 0){
-                it = it->right;
-				it->rotateRight();
+				it->right->rotateRight();
 			}
-			else{
-				it->rotateLeft();
-                //it->calculateInvariant();
-			}
+			it->rotateLeft();
+            it->calculateInvariant();
 		}
         else if (condition >= 2){
-			// левое поддерево выше правого
 			if(it->left->checkBalance() < 0){
-				it = it->left;
-				it->rotateLeft();
-                //it->calculateInvariant();
+				it->left->rotateLeft();
 			}
-			else{
-				it->rotateRight();
-                //it->calculateInvariant();
-			}
+            it->rotateRight();
+            it->calculateInvariant();
 		}
 
         if (it->parent == nullptr) {

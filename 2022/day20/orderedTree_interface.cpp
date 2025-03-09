@@ -44,7 +44,7 @@ cContainer::cTreeNode* cContainer::operator[](int index){
 //template<>
 void cContainer::insert(int index, const T& value, size_t iter_index){
     //1) структура была пуста. новый элемент теперь корень
-    updateOffset(value);
+    //updateOffset(value);
 
     cTreeNode* newElement = new cTreeNode;
     newElement->setValue(value);

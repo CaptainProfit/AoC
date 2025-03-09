@@ -18,21 +18,25 @@ class cSolve{
     cSolve(const string& name){
         string line;
         ifstream ifstr(name, ios::binary);
+        int counter = 0;
         for(getline(ifstr, line); !ifstr.eof() && !line.empty(); getline(ifstr, line)){
-            storage.push_back(stoi(line));
-            storage.print();
+            int value = stoi(line);
+            storage.push_back(value);
+            //storage.updateOffset(value);
+            //storage.print();
+            assert(counter++ < 10000);
         }
         ifstr.close();
     }
 
     void solve(){
         int d = storage.sizef();
-        cout << "initial position" << endl;
-        storage.print();
+        //cout << "initial position" << endl;
+        //storage.print();
         for(int i = 0; i < d; i++){
             storage.move(i);
-            cout << "after " << i << "th move" << endl;
-            storage.print();
+            //cout << "after " << i << "th move" << endl;
+            //storage.print();
         }
     }
 
@@ -66,5 +70,13 @@ int main(void){
         return -2;
     }
     cout<<"test passed "<< result << endl;
+    cSolve task("cond.input");
+    task.solve();
+    result = task.mix();
+    if(result != 7153){
+        cout << "cond failed (7153):" << result <<endl;
+        return -2;
+    }
+    cout<<"cond passed: "<< result << endl;
     return 0;
 }

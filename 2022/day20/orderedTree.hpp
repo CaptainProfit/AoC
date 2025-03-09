@@ -28,8 +28,8 @@ class cContainer{
     // признак корня - он сам себе парент.
     // признак пустого дерева - парент нулевой.
     int offset = 1;
-    void updateOffset(int value);
     public:
+    void updateOffset(int value);
     class cTreeNode{
         public:
         T value;
@@ -131,8 +131,8 @@ class cContainer{
         new_pos += sizef() - 1;
         new_pos %= sizef() - 1; 
         remove(pos);
-        cout << "after remove" << endl;
-        print();
+        //cout << "after remove" << endl;
+        //print();
         insert(new_pos, value, i);
         values[i] = (*this)[new_pos];
     }
@@ -169,10 +169,9 @@ class cContainer{
         cout << "+" << endl;
     }
     void printTree(){
-        int offset = 2;
-        offset += 2;
+        int loffset = offset + 2;
         vector<string> canvas;
-        string skip2(offset, ' ');
+        string skip2(loffset, ' ');
         stack<cNodeMarker> stack_node;
         stack_node.push({root, 0, false});
         int index = 0;
@@ -190,12 +189,12 @@ class cContainer{
             stack_node.pop();
             stack_node.push({ptr->right, level + 1, false});
             for (size_t i = canvas.size(); i <= level; i++) {
-                canvas.emplace_back(offset*index, ' ');
+                canvas.emplace_back(loffset*index, ' ');
             }
             for (size_t i = 0; i < canvas.size(); i++) {
                 if ( i == level) {
                     stringstream ss;
-                    ss << setw(offset-2) << ptr->value;
+                    ss << setw(loffset-2) << ptr->value;
                     canvas[i] += " " + ss.str() + " ";
                 }
                 else {
