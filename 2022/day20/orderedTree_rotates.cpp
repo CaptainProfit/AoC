@@ -21,9 +21,9 @@ void cContainer::cTreeNode::rotateLeft(){
 	//cTreeNode* subtree1 = X->left;
 	cTreeNode* subtree23 = Y->left;
 	//cTreeNode* subtree4 = Y->right;	
-
+    
 	//2) переключение предка
-	if(parent != X){
+	if(parent != nullptr){
 		if(parent->left == X){
 			parent->left = Y;
 		}
@@ -31,16 +31,16 @@ void cContainer::cTreeNode::rotateLeft(){
 			parent->right = Y;
 		}
 	}
-	else{
-		//корень
-		parent = Y;
-	}
 
 	//3) поворот
 	Y->parent = parent;
 	Y->left = X;
 	X->parent = Y;	
 	X->right = subtree23;
+    if (subtree23 != nullptr) {
+        subtree23->parent = X;
+    }
+    calculateInvariant();
 }
 
 // корень падает, справа приподнимается
@@ -56,7 +56,7 @@ void cContainer::cTreeNode::rotateRight(){
 	//cTreeNode* subtree4 = Y->right;
 
 	//2) переключение предка
-	if(parent != Y){
+	if(parent != nullptr){
 		if(parent->left == Y){
 			parent->left = X;
 		}
@@ -64,27 +64,27 @@ void cContainer::cTreeNode::rotateRight(){
 			parent->right = X;
 		}
 	}
-	else{
-		//корень
-		parent = X;
-	}
 
 	//3) поворот	
 	X->parent = parent;
 	X->right = Y;
 	Y->parent = X;
 	Y->left = subtree23;
+    if (subtree23 != nullptr) {
+        subtree23->parent = Y;
+    }
+    calculateInvariant();
 }
 
 // корень падает, слева внук подскакивает
 
 void cContainer::cTreeNode::rotateLeftDouble(){
 	// X->Y-<Z to X<-Z->Y
-	cTreeNode* Y = left;
+	cTreeNode* Y = right;
 	cTreeNode* X = this;
 	//cTreeNode* Z = Y->right;
 	Y->rotateRight();
-	X->rotateLeft();
+    X->rotateLeft();
 }
 
 // корень падает, справа внук подскакивает

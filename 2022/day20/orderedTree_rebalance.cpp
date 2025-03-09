@@ -13,6 +13,7 @@ using namespace std;
 // вычисляет инварианты и запоминает в вершине
 
 void cContainer::cTreeNode::calculateInvariant(){
+    assert(this);
 	int leftH = 0, rightH = 0, leftSize = 0, rightSize = 0;
 	if(left != nullptr){
 		leftH = left->height;
@@ -44,36 +45,44 @@ int cContainer::cTreeNode::checkBalance(){
 
 //восстанавливает сбалансированость
 
-void cContainer::cTreeNode::restoreInvariants() {
+cContainer::cTreeNode* cContainer::cTreeNode::restoreInvariants() {
 	// высоты по правилам АВЛ
 	// размеры - сначала вдоль АВЛ, потом до корня
 	// if(isEmpty())
 	// 	return;
-	for(cTreeNode* it = this; ; it = it->parent){
-		it->calculateInvariant();
+    assert(this);
+    //calculateInvariant();
+	for (cTreeNode* it = this; it != nullptr; it = it->parent) {
+        it->calculateInvariant();
 		int condition = it->checkBalance();
 		if(condition <= -2){
 			// правое поддерево выше левого
 			if(it->right->checkBalance() > 0){
-				it->rotateLeftDouble();
+                it = it->right;
+				it->rotateRight();
 			}
 			else{
 				it->rotateLeft();
+                //it->calculateInvariant();
 			}
 		}
-
-		if(condition >= 2){
+        else if (condition >= 2){
 			// левое поддерево выше правого
 			if(it->left->checkBalance() < 0){
-				it->rotateRightDouble();
+				it = it->left;
+				it->rotateLeft();
+                //it->calculateInvariant();
 			}
 			else{
 				it->rotateRight();
+                //it->calculateInvariant();
 			}
 		}
-		
-		if(it->isRoot()){
-			break;
-		}
+
+        if (it->parent == nullptr) {
+            return it;
+        }
 	}
+    assert(0);
+    return nullptr;
 }

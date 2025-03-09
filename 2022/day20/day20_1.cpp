@@ -18,18 +18,20 @@ class cSolve{
     cSolve(const string& name){
         string line;
         ifstream ifstr(name, ios::binary);
-        for(getline(ifstr, line); !ifstr.eof(); getline(ifstr, line)){
+        for(getline(ifstr, line); !ifstr.eof() && !line.empty(); getline(ifstr, line)){
             storage.push_back(stoi(line));
+            storage.print();
         }
         ifstr.close();
     }
 
     void solve(){
         int d = storage.sizef();
+        cout << "initial position" << endl;
         storage.print();
         for(int i = 0; i < d; i++){
-            
             storage.move(i);
+            cout << "after " << i << "th move" << endl;
             storage.print();
         }
     }
