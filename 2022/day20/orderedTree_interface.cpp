@@ -6,7 +6,6 @@
 ************************************************************/
 
 using namespace std;
-typedef int T;
 //template class cContainer<int>;
 
 // возвращает ссылку на элемент с данным индексом
@@ -129,7 +128,7 @@ void cContainer::remove(int index){
     delete marked;
 }
 
-void cContainer::updateOffset(int value) {
+void cContainer::updateOffset(T value) {
     int len = 0;
     if (value < 0) {
         value = -value;

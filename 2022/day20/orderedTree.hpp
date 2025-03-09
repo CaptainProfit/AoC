@@ -9,12 +9,12 @@
 #include <vector>
 #include <stack>
 #include <sstream>
-
+#define ll long long
 #define ull unsigned long long
 
 using namespace std;
 
-typedef int T;
+typedef ll T;
 //template<typename T>
 class cContainer{
     // структура хранит набор элементов типа Т
@@ -29,7 +29,7 @@ class cContainer{
     // признак пустого дерева - парент нулевой.
     int offset = 1;
     public:
-    void updateOffset(int value);
+    void updateOffset(T value);
     class cTreeNode{
         public:
         T value;
@@ -126,7 +126,7 @@ class cContainer{
     void move(const T& i) {
         cTreeNode* node = values[i];
         int pos = node->getIndex();
-        int value = node->getValue();
+        T value = node->getValue();
         int new_pos = (pos + value) % (sizef() - 1);
         new_pos += sizef() - 1;
         new_pos %= sizef() - 1; 
@@ -141,7 +141,7 @@ class cContainer{
         values.push_back((*this)[sizef() - 1]);
     }
     void print() {
-        printTree();
+        //printTree();
         printSimple();
     }
     void printSimple(){

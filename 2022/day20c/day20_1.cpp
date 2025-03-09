@@ -5,7 +5,7 @@
 #include <iostream> 
 #include <fstream>
 #include <string>
-#include <list>
+#include <vector>
 #include <chrono>
 #include <map>
 #define ull unsigned long long
@@ -13,20 +13,13 @@
 using namespace std;
 
 class cSolve{
-	list<pair<int, int>> packet;
+	vector<pair<int, int>> packet;
 	int N;
-	pair<int, int>& operator[](int i) {
-        auto it = packet.begin();
-        while (i-- > 0) {
-            it++;
-        }
-        return *it;
-    }
-
+	
 	void print(int it = -1){
-		for (auto i = packet.begin(); i != packet.end(); i++) {
-            cout << i->second;
-			if(i->first == it){
+		for(int i = 0; i < packet.size(); i++){
+			cout << packet[i].second;
+			if(packet[i].first == it){
 				cout << "<";
 			}
 			else{
@@ -36,37 +29,29 @@ class cSolve{
 		cout << endl;
 	}
 
-	list<pair<int, int>>::iterator find(int queNum){
-		for (auto it = packet.begin(); it != packet.end(); it++) {
-			if (it->first == queNum){
-				return it;
+	int find(int queNum){
+		for(int i = 0; i < packet.size(); i++){
+			if(packet[i].first == queNum){
+				return i;
 			}
 		}
-		return packet.end();
+		return -1;
 	}
 
-	void move(int id){
-        list<pair<int, int>>::iterator it = find(id);
-        pair<int, int> el = *it;
-		int d = it->second;
-		d %= N - 1;
+	void move(int it){
+		int d = packet[it].second;
+		d %= N-1;
 		d += N - 1;
-		d %= N - 1;
-        if (d == 0) {
-            return;
-        }
-        
-		list<pair<int, int>>::iterator new_it = it;
-        for (int i = 0; i <= d; i++) {
-            new_it++;
-            if (new_it == packet.end()) {
-                new_it = packet.begin();
-            }
-        }
+		d %= N-1;
+				
+		int it2 = it + d;
+		it2 %= N;
 
-        packet.erase(it);
-        packet.insert(new_it, el);
-        //print();
+		for(int i = it; i != it2; ++i %= N){
+			swap(packet[i], packet[(i + 1) % N]);
+			// cout << "\t";
+			// print();
+		}
 	}
 
 	public:	
@@ -87,7 +72,7 @@ class cSolve{
 		//математическая формула из условия задачи
 		int zid = -1;
 		for(int i = 0; i < N; i++){
-			if((*this)[i].second == 0){
+			if(packet[i].second == 0){
 				zid = i;
 				break;
 			}
@@ -96,15 +81,15 @@ class cSolve{
 		int id1 = (zid + 1000) % N;
 		int id2 = (zid + 2000) % N;
 		int id3 = (zid + 3000) % N;
-		return (*this)[id1].second + 
-				(*this)[id2].second +
-				(*this)[id3].second;
+		return packet[id1].second + 
+				packet[id2].second +
+				packet[id3].second;
 	}
 
 	int solve(){
 		for(int i = 0; i < N; i++){
 			// print(i);
-			move(i);
+			move(find(i));
 		}
 		// print();
 		return mix();

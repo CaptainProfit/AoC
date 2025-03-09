@@ -2,8 +2,9 @@
 //problem - https://adventofcode.com/2022/day/20
 //2147483647 - LONG_MAX
 //18446744073709551615 - ULLONG_MAX
-#include <iostream> 
+#include <chrono>
 #include <fstream>
+#include <iostream> 
 #include <string>
 #include <vector>
 #include "orderedTree.hpp"
@@ -61,6 +62,7 @@ class cSolve{
 
 int main(void){	
     int result;
+    const auto tstart = chrono::steady_clock::now();
     cSolve test("test.input");
     test.solve();
     result = test.mix();
@@ -73,10 +75,13 @@ int main(void){
     cSolve task("cond.input");
     task.solve();
     result = task.mix();
+    const auto tend = chrono::steady_clock::now();
+	const auto interval = std::chrono::duration_cast<std::chrono::microseconds>(tend - tstart);
     if(result != 7153){
         cout << "cond failed (7153):" << result <<endl;
         return -2;
     }
     cout<<"cond passed: "<< result << endl;
+	std::cout << "time passed: " << std::chrono::microseconds(interval).count() << "us" << std::endl;
     return 0;
 }
