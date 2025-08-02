@@ -23,6 +23,7 @@ struct Expr {
 	string op;
 	optional<unsigned char> value;
 };
+map<string, set<string>> expansions;
 
 class Structure {
 	struct Entity {
@@ -44,6 +45,9 @@ class Structure {
 		pt.x = l_id *3*dx;
 		pt.y = 0;
 		for (auto& label : entity.parents) {
+			if (entities.count(label) == 0) {
+				assert(0);
+			}
 			pt.y += entities[label]->center.y;
 		}
 		pt.y /= entity.parents.size();
@@ -70,11 +74,11 @@ public:
 	void AddPoint(int l_id, string label, const set<string>& parents, svg::Point pt = svg::Point{0, 0}) {
 		if (layers.size() <= l_id) {
 			layers.resize(l_id + 1);
-			layers[l_id].emplace(label,
-				Entity{label, parents, pt}
-			);
-			entities[label] = &(layers[l_id][label]);
 		}
+		layers[l_id].emplace(label,
+			Entity{label, parents, pt}
+		);
+		entities[label] = &(layers[l_id][label]);
 	}
 	void SetPoint(string label, svg::Point pt) {
 		assert(static_cast<int>(pt.x) % dx == 0);
@@ -139,6 +143,10 @@ void ReadFile(string filename) {
 
 	while(getline(f, line) && !f.eof() && !line.empty()) {
 		ParseExpr(line);
+	}
+	for (auto& [key, expr] : exprs) {
+		expansions[expr.left].insert(key);
+		expansions[expr.right].insert(key);
 	}
 }
 
@@ -385,8 +393,8 @@ void Draw() {
 		iter.y += Structure::dy;
 		known_values.emplace(key2, svg::WireLabel{iter, key2});
 		iter.y += 3*Structure::dy;
-		str.AddPoint(l_id, key1, svg::Point{Structure::dx, Structure::dy*(3*i)});
-		str.AddPoint(l_id, key2, svg::Point{Structure::dx, Structure::dy*(3*i + 1)});
+		str.AddPoint(l_id, key1, svg::Point{0, Structure::dy*(3*i)});
+		str.AddPoint(l_id, key2, svg::Point{0, Structure::dy*(3*i + 1)});
 	}
 	iter.x = 0;
 	set<string> new_values;
@@ -401,36 +409,45 @@ void Draw() {
 			str.AddPoint(l_id, key, set{exprs[key].left, exprs[key].right});
 			elems.emplace(key, svg::Element{iter, exprs[key].op});
 			known_values.emplace(key, svg::WireLabel{iter + svg::Point{Structure::dx, 0}, key});
-			wires.emplace(key, svg::Wire{
-					//svg::Element(svg::Point{1,2}, ""),
-					elems[key], 
-					//<svg::WireLabel>(),
-					vector{known_values[key]}
-				});
 			iter.y += Structure::dy;
 		}
 	} while (!new_values.empty());
+	
+	str.Sort();
+	for (auto& [key, entity] : known_values) {
+		if (elems.count(key) != 0) {
+			elems[key].SetCenter(str.GetPoint(key));
+		}
+		entity.SetCenter(str.GetPoint(key) + svg::Point{Structure::dx, 0});
+	}
+	for (auto& [key, entity] : known_values) {
+		if (elems.count(key) != 0 ) {
+			wires.emplace(key, svg::Wire{
+				elems[key],
+				vector{known_values[key]}
+			});
+		}
+	}
 	for (auto& [key, _] : exprs) {
 		vector<svg::Element> wire_ends;
-		for (auto& [key_found, expr] : exprs) {
+		for (auto& [key_found, expr] : exprs)
 			if (expr.left == key || expr.right == key)
 				wire_ends.push_back(elems[key_found]);
-		}
-		wires.emplace(key, svg::Wire{known_values[key], wire_ends});
-	}
-	for (auto& [key, _] : values) {
-		vector<svg::Element> wire_ends;
-		for (auto& [key_found, expr] : exprs) {
-			if (expr.left == key || expr.right == key)
-				wire_ends.push_back(elems[key_found]);
-		}
-		assert(known_values.count(key));
 		wires.emplace(key, svg::Wire{
 			known_values[key],
 			wire_ends
 		});
 	}
-	//str.Sort();
+	for (auto& [key, _] : values) {
+		vector<svg::Element> wire_ends;
+		for (auto& [key_found, expr] : exprs)
+			if (expr.left == key || expr.right == key)
+				wire_ends.push_back(elems[key_found]);
+		wires.emplace(key, svg::Wire{
+			known_values[key],
+			wire_ends
+		});
+	}
 
 	Emplace(doc, known_values);
 	Emplace(doc, elems);

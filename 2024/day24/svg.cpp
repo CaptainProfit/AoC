@@ -117,6 +117,8 @@ void Polyline::RenderObject(const RenderContext& context) const {
     }
     out << "\"";
     RenderAttrs(out);
+    out << " fill-opacity=\"0.4\"";
+    out << " stroke-opacity=\"0.4\"";
     out << "/>"sv;
 }
 
@@ -150,6 +152,9 @@ void Line::RenderObject(const RenderContext& context) const {
     }
     out << "\"";
     RenderAttrs(out);
+    out << " fill-opacity=\"0.4\"";
+    out << " stroke-opacity=\"0.4\"";
+
     if (arrow)
         out << " marker-end=\"url(#arrowhead)\"";
     out << "/>"sv;
