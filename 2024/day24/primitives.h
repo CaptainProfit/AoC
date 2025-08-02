@@ -13,6 +13,9 @@ public:
 	Point GetCenter() const {
 		return center;
 	}
+	void SetCenter(Point pt) {
+		center = pt;
+	}
 protected:
 	Point center;
 };
@@ -23,6 +26,9 @@ public:
 	WireLabel(Point pt,std::string name) {
 		center = pt;
 		label = name;
+	}
+	WireLabel() {
+		std::cerr << "WireLabel() why im here?" << std::endl;
 	}
 	
 	void Emplace(ObjectContainer& cont) const override {
@@ -48,6 +54,9 @@ public:
 	Element(Point pt, std::string name) {
 		label = name;
 		center = pt;
+	}
+	Element() {
+		std::cerr << "Element() why im here?" << std::endl;
 	}
 	
 	void Emplace(ObjectContainer& cont) const override {
@@ -93,11 +102,11 @@ class Wire{
 	// int out_w;
 	const int tr_w = 30;
 public:
-	template<typename Element, typename Container>
-	Wire(const Element& in, const Container& outs) {
+	template<typename Entity, typename Container>
+	Wire(const Entity& in, const Container& outs) {
 		start = in.GetCenter();
 		bool need_back = false;
-		constexpr int out_w = (std::is_same<Element, WireLabel>::value)?
+		constexpr int out_w = (std::is_same<Entity, WireLabel>::value)?
 			25:20;
 		constexpr int in_w = (std::is_same<typename Container::value_type, WireLabel>::value)?
 			25:20;

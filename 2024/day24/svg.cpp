@@ -13,10 +13,10 @@ struct OstreamColorPrinter {
     void operator()(string color) const {
         out << color;
     }
-    void operator()(svg::Rgb color) const {
+    void operator()(Rgb color) const {
         out << "rgb("sv << (int)color.red << "," << (int)color.green << "," << (int)color.blue << ")"sv;
     }
-    void operator()(svg::Rgba color) const {
+    void operator()(Rgba color) const {
         out << "rgba("sv << (int)color.red << "," << (int)color.green << "," << (int)color.blue << "," << color.opacity << ")"sv;
     }
 };
@@ -280,7 +280,7 @@ void Text::RenderObject(const RenderContext& context) const {
 
 void Document::Render(ostream& out) const {
     out << "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>"sv << endl;
-    out << "<svg style=\"background: rgb(15,15,35)\" xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"sv << endl;
+    out << "<svg width=\"5000\" height=\"3000\" style=\"background: rgb(15,15,35)\" xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"sv << endl;
     RenderContext ctx(out, 2, 2);
     for (auto& object: objects_) {
         object->Render(ctx);

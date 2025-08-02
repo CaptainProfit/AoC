@@ -24,6 +24,75 @@ struct Expr {
 	optional<unsigned char> value;
 };
 
+class Structure {
+	struct Entity {
+		string label;
+		set<string> parents;
+		svg::Point center;
+	};
+	using Layer = map<string, Entity>;
+	vector<Layer> layers;
+	map<string, Entity*> entities;
+	set<svg::Point> reserved_points;
+
+	public:
+	static const int dx = 70;
+	static const int dy = 50;
+
+	void PlaceEntity(int l_id, Entity &entity) {
+		svg::Point pt;
+		pt.x = l_id *3*dx;
+		pt.y = 0;
+		for (auto& label : entity.parents) {
+			pt.y += entities[label]->center.y;
+		}
+		pt.y /= entity.parents.size();
+		pt.y = (static_cast<int>(pt.y)/dy)*dy;
+		svg::Point new_pt(pt);
+		int i = 0;
+		while (reserved_points.count(new_pt) != 0) {
+			new_pt = pt + svg::Point{0, dy*i};
+			if (reserved_points.count(new_pt) == 0)
+				break;
+			new_pt = pt - svg::Point{0, dy*i};
+			if (reserved_points.count(new_pt) == 0)
+				break;
+			i++;
+		}
+		entity.center = new_pt;
+		reserved_points.insert(new_pt);		
+	}
+
+public:
+	void AddPoint(int l_id, string label, svg::Point pt) {
+		AddPoint(l_id, label, {}, pt);
+	}
+	void AddPoint(int l_id, string label, const set<string>& parents, svg::Point pt = svg::Point{0, 0}) {
+		if (layers.size() <= l_id) {
+			layers.resize(l_id + 1);
+			layers[l_id].emplace(label,
+				Entity{label, parents, pt}
+			);
+			entities[label] = &(layers[l_id][label]);
+		}
+	}
+	void SetPoint(string label, svg::Point pt) {
+		assert(static_cast<int>(pt.x) % dx == 0);
+		assert(static_cast<int>(pt.y) % dy == 0);
+		reserved_points.erase(entities[label]->center);
+		entities[label]->center = pt;
+		reserved_points.insert(pt);
+	}
+	svg::Point GetPoint(string label) {
+		return entities[label]->center;
+	}
+	void Sort() {
+		for (int l_id = 1; l_id < layers.size(); l_id++)
+			for (auto& [label, entity] : layers[l_id])
+				PlaceEntity(l_id, entity);
+	}
+};
+
 unordered_map<string, Expr> exprs;
 
 string_view ExtractField(string_view& right, string_view delim) {
@@ -271,63 +340,103 @@ void Solve() {
 	}
 }
 
+template<typename T>
+set<string> CalculateNextLayer(unordered_map<string, T> inputs) {
+	set<string> outputs;
+	for (auto& [key, expr] : exprs ) {
+		if (inputs.count(expr.left) == 0)
+			continue;
+		if (inputs.count(expr.right) == 0)
+			continue;
+		if (inputs.count(key) == 0)
+			outputs.emplace(key);
+	}
+	return outputs;
+}
+template <typename Container>
+void Emplace(svg::Document& doc, Container& ctr) {
+	for (auto& [key, value] : ctr) {
+		value.Emplace(doc);
+	}
+}
+
 void Draw() {
-	vector<svg::WireLabel> in_wirelabels;
-	svg::Point inpt = {30, 30};
+	Structure str;
+	svg::Point iter{Structure::dx, Structure::dy};
 
-	vector<svg::Element> z_els;
-	vector<svg::WireLabel> z_wirelabels;
-	vector<svg::Wire> z_wires;
-	svg::Point outpt = {270, 40};
-
-	for (int i = 0; i < 100; i++) {
-		string keyx = Key('x', i);
-		string keyy = Key('y', i);
-		if (values.count(keyx) > 0) {
-			in_wirelabels.push_back({inpt, keyx});
-			inpt.y += 60;
-			in_wirelabels.push_back({inpt, keyy});
-			inpt.y += 60;
-		}
-		else break;
-	}
-
-	for (int i = 0; i < 100; i++) {
-		string key = Key('z', i);
-		if (exprs.count(key) > 0) {
-			z_els.push_back({outpt, exprs[key].op});
-			z_wirelabels.push_back({outpt +  svg::Point{160, 10}, key});
-			z_wires.push_back({z_els[i], vector{z_wirelabels[i]}});
-			if (i > 0) {
-				z_wires.push_back({z_wirelabels[i-1], vector{z_els[i]}});
-			}
-			outpt.y += 120;
-		}
-		else break;
-	}
-	
 	svg::Document doc;
 	doc.Add(svg::Rect()
-	.SetFillColor(svg::Rgb{15,15,35})
-	.SetStrokeColor(svg::Rgb{15,15,35})
+		.SetFillColor(svg::Rgb{15,15,35})
+		.SetStrokeColor(svg::Rgb{15,15,35})
 		.SetTL({0, 0})
-		.SetBR({600, 1600}));
+		.SetBR({1000, 1600}));
+
+	unordered_map<string, svg::WireLabel> known_values;
+	unordered_map<string, svg::Element> elems;
+	unordered_multimap<string, svg::Wire> wires;
+
+	int l_id = 0;
+	for (int i = 0; i < 100; i++) {
+		string key1 = Key('x', i);
+		string key2 = Key('y', i);
+		if (values.count(key1) == 0)
+			break;
+		known_values.emplace(key1, svg::WireLabel{iter, key1});
+		iter.y += Structure::dy;
+		known_values.emplace(key2, svg::WireLabel{iter, key2});
+		iter.y += 3*Structure::dy;
+		str.AddPoint(l_id, key1, svg::Point{Structure::dx, Structure::dy*(3*i)});
+		str.AddPoint(l_id, key2, svg::Point{Structure::dx, Structure::dy*(3*i + 1)});
+	}
+	iter.x = 0;
+	set<string> new_values;
 	
-	for (auto& el : in_wirelabels) {
-		el.Emplace(doc);
+	do {
+		l_id++;
+		iter.x += 2*Structure::dx;
+		iter.y = Structure::dy + 15*l_id;
+		new_values = CalculateNextLayer(known_values);
+		
+		for (auto& key : new_values) {
+			str.AddPoint(l_id, key, set{exprs[key].left, exprs[key].right});
+			elems.emplace(key, svg::Element{iter, exprs[key].op});
+			known_values.emplace(key, svg::WireLabel{iter + svg::Point{Structure::dx, 0}, key});
+			wires.emplace(key, svg::Wire{
+					//svg::Element(svg::Point{1,2}, ""),
+					elems[key], 
+					//<svg::WireLabel>(),
+					vector{known_values[key]}
+				});
+			iter.y += Structure::dy;
+		}
+	} while (!new_values.empty());
+	for (auto& [key, _] : exprs) {
+		vector<svg::Element> wire_ends;
+		for (auto& [key_found, expr] : exprs) {
+			if (expr.left == key || expr.right == key)
+				wire_ends.push_back(elems[key_found]);
+		}
+		wires.emplace(key, svg::Wire{known_values[key], wire_ends});
 	}
+	for (auto& [key, _] : values) {
+		vector<svg::Element> wire_ends;
+		for (auto& [key_found, expr] : exprs) {
+			if (expr.left == key || expr.right == key)
+				wire_ends.push_back(elems[key_found]);
+		}
+		assert(known_values.count(key));
+		wires.emplace(key, svg::Wire{
+			known_values[key],
+			wire_ends
+		});
+	}
+	//str.Sort();
 
-	for (auto& el : z_wirelabels) {
-		el.Emplace(doc);
-	}
-	for (auto& el : z_els) {
-		el.Emplace(doc);
-	}
-	for (auto& el : z_wires) {
-		el.Emplace(doc);
-	}
-
-	ofstream of("z_outs.svg");
+	Emplace(doc, known_values);
+	Emplace(doc, elems);
+	Emplace(doc, wires);
+	
+	ofstream of("z_outs2.svg");
 	doc.Render(of);
 }
 
