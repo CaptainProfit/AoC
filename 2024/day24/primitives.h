@@ -4,12 +4,13 @@
 #include <map>
 #include <set>
 #include <string>
+#include  <type_traits>
 
 namespace svg {
 class Base {
 public:
-	virtual void Emplace(ObjectContainer& cont) = 0;
-	Point GetCenter() {
+	virtual void Emplace(ObjectContainer& cont) const = 0;
+	Point GetCenter() const {
 		return center;
 	}
 protected:
@@ -24,7 +25,7 @@ public:
 		label = name;
 	}
 	
-	void Emplace(ObjectContainer& cont) override {
+	void Emplace(ObjectContainer& cont) const override {
 		cont.Add(Rect()
 			.SetFillColor(Rgb{16, 16, 26})
 			.SetStrokeColor(Rgb{180, 180, 180})
@@ -36,20 +37,20 @@ public:
 				.SetStrokeColor(Rgb{180, 180, 180})
 				.SetFillColor(Rgb{180, 180, 180})
 				.SetFontSize(16)
-				.SetPosition(center - Point({15, -5}))
+				.SetPosition(center - Point({0, -5}))
 				.SetData(label));
 	}
 };
 
 class Element : public Base{
-	std::string label;
+	mutable std::string label;
 public:
 	Element(Point pt, std::string name) {
 		label = name;
 		center = pt;
 	}
 	
-	void Emplace(ObjectContainer& cont) override {
+	void Emplace(ObjectContainer& cont) const override {
 		using namespace std::string_literals;
 		cont.Add(Circle()
 				.SetFillColor(Rgb{16, 16, 26})
@@ -57,43 +58,76 @@ public:
 				.SetStrokeWidth(2)
 				.SetCenter(center)
 				.SetRadius(20));
+		if (label == "AND"s) {
+			label = "&&";
+		}
+		else if (label == "OR"s) {
+			label = "||";
+		}
+		else if (label == "XOR"s) {
+			label = "^";
+		}
 		cont.Add(Text()
 				.SetStrokeColor(Rgb{180, 180, 180})
 				.SetFillColor(Rgb{180, 180, 180})
 				.SetFontSize(16)
-				.SetPosition(center - Point({label.compare("&&"s)?5.0:12.0, -5.0}))
+				.SetPosition(center - Point{0, -5.0})
 				.SetData(label));
 	}
+	friend inline bool operator<(const Element& lhs, const Element& rhs);
 };
+
+inline bool operator<(const Element& lhs, const Element& rhs) {
+	if (lhs.center < rhs.center) 
+		return true;
+	if (lhs.center > rhs.center) 
+		return false;
+	return lhs.label < rhs.label;
+}
 
 class Wire{
 	Point start;
 	Point rightmost;
 	std::multimap<Point, Point> edges;
+	// int in_w;
+	// int out_w;
+	const int tr_w = 30;
 public:
-	Wire(const Point& in, const std::set<Point>& outs) {
-		start = in;
-		start.x += 25;
-		rightmost = in;
-		for (auto& pt : outs) {
-			rightmost.x = rightmost.x > pt.x? rightmost.x: pt.x;
+	template<typename Element, typename Container>
+	Wire(const Element& in, const Container& outs) {
+		start = in.GetCenter();
+		bool need_back = false;
+		constexpr int out_w = (std::is_same<Element, WireLabel>::value)?
+			25:20;
+		constexpr int in_w = (std::is_same<typename Container::value_type, WireLabel>::value)?
+			25:20;
+		start.x += out_w;
+		rightmost = start;
+		//rightmost.x += 10;
+
+		for (const auto& el : outs) {
+			double joint_ptx = el.GetCenter().x - in_w - tr_w;
+			rightmost.x = rightmost.x > joint_ptx? rightmost.x: joint_ptx;
 		}
-		rightmost.x -= 70;
-		//edges.emplace(start, rightmost);
-		double old_x = start.x;
-		for (Point pt : outs) {
-			Point joint(in);
-			pt.x -= 20;
-			joint.x = pt.x - 50;
-			if (start.x > pt.x) {
-				pt.x = old_x;
+		
+		for (const auto& el : outs) {
+			Point pt = el.GetCenter();
+			pt.x -= in_w;
+			Point joint(pt);
+			joint.x -= tr_w;
+			joint.y = start.y;
+			if (joint.x < start.x + 10) {
+				need_back = true;
+				joint.x = start.x + 10;
 			}
 			edges.emplace(joint, pt);
-			old_x = joint.x;
+		}
+		if (rightmost.x < start.x + 10 && need_back) {
+			rightmost.x = start.x + 10;
 		}
 	}
 	
-	void Emplace(ObjectContainer& cont) {
+	void Emplace(ObjectContainer& cont) const {
 		cont.Add(Polyline()
 			.AddPoint(start)
 			.AddPoint(rightmost)
@@ -101,7 +135,7 @@ public:
 			.SetStrokeWidth(1));
 		
 		for (auto edge : edges) {
-			if(start.x < edge.first.x) {
+			if(edge.second.x > edge.first.x - 10) {
 				Point lr(edge.first);
 				Point tb(edge.second);
 				auto tmp = lr.x;
@@ -112,26 +146,22 @@ public:
 					.AddPoint(lr)
 					.AddPoint(tb)
 					.AddPoint(edge.second)
-					.SetStrokeColor(Rgb{15, 180, 15})
+					.SetStrokeColor(Rgb{16, 180, 15})
 					.SetFillColor(NoneColor)
 					.SetStrokeWidth(1)
 					.SetArrow(true));
 			}
 			else {
-				double ofsy = 10;
-				if (edge.first.y > edge.second.y) {
-					ofsy = -10;
-				}
-				Point a1(edge.first);
-				Point a2(edge.first);
-				Point a3(edge.first);
-				a1.x += 10;
-				a2.x += 10;
-				a2.y += ofsy;
-				a3.y += ofsy;
+				double ofsy = (edge.second.y - edge.first.y)/2;
+				double ofsx = ofsy;
+				/*if (edge.first.y > edge.second.y) {
+					ofsy = -ofsy;
+				}*/
+				Point a1 = edge.first + Point{ofsx, 0};
+				Point a2 = edge.first + Point{ofsx, ofsy};
+				Point a3 = edge.first + Point{0, ofsy};
+				Point a4 = edge.first + Point{-ofsx, ofsy};
 
-				Point a4(a3);
-				a4.x -= 10;
 				cont.Add(Line()
 					.AddPoint(edge.first)
 					.AddPoint(a1)
@@ -141,15 +171,10 @@ public:
 					.SetFillColor(NoneColor)
 					.SetStrokeWidth(1));
 
-				Point b1(edge.second);
-				Point b2(edge.second);
-				Point b3(edge.second);
-				b1.y -= ofsy;
-				b2.x -= 10;
-				b2.y -= ofsy;
-				b3.x -= 10;
-				Point b0(b1);
-				b0.x += 10;
+				Point b1 = edge.second + Point{0, -ofsy};
+				Point b2 = edge.second + Point{-ofsx, -ofsy};
+				Point b3 = edge.second + Point{-ofsx, 0};
+				Point b0 = edge.second + Point{ofsx, -ofsy};
 				cont.Add(Line()
 					.AddPoint(b1)
 					.AddPoint(b2)

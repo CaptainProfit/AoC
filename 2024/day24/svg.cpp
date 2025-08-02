@@ -52,6 +52,9 @@ bool operator<(const Point& lhs, const Point& rhs) {
         return false;
     return (lhs.y < rhs.y);
 }
+bool operator>(const Point& lhs, const Point& rhs) {
+    return rhs < lhs;
+}
 
 Point operator+(Point lhs, const Point& rhs) {
 	lhs.x += rhs.x;
@@ -236,6 +239,7 @@ void Text::RenderObject(const RenderContext& context) const {
     auto& out = context.out;
     out << "<text";
     RenderAttrs(out);
+    out << " text-anchor=\"middle\"";
     out << " x=\""sv << pos_.x <<"\" y=\""sv << pos_.y << "\" "sv;
     out << "dx=\""sv << offset_.x << "\" dy=\""sv << offset_.y << "\" "sv;
     out << "font-size=\""sv << size_ << "\""sv;

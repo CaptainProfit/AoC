@@ -271,65 +271,73 @@ void Solve() {
 	}
 }
 
+void Draw() {
+	vector<svg::WireLabel> in_wirelabels;
+	svg::Point inpt = {30, 30};
 
-int main(int argc, char** argv) {
+	vector<svg::Element> z_els;
+	vector<svg::WireLabel> z_wirelabels;
+	vector<svg::Wire> z_wires;
+	svg::Point outpt = {270, 40};
+
+	for (int i = 0; i < 100; i++) {
+		string keyx = Key('x', i);
+		string keyy = Key('y', i);
+		if (values.count(keyx) > 0) {
+			in_wirelabels.push_back({inpt, keyx});
+			inpt.y += 60;
+			in_wirelabels.push_back({inpt, keyy});
+			inpt.y += 60;
+		}
+		else break;
+	}
+
+	for (int i = 0; i < 100; i++) {
+		string key = Key('z', i);
+		if (exprs.count(key) > 0) {
+			z_els.push_back({outpt, exprs[key].op});
+			z_wirelabels.push_back({outpt +  svg::Point{160, 10}, key});
+			z_wires.push_back({z_els[i], vector{z_wirelabels[i]}});
+			if (i > 0) {
+				z_wires.push_back({z_wirelabels[i-1], vector{z_els[i]}});
+			}
+			outpt.y += 120;
+		}
+		else break;
+	}
+	
 	svg::Document doc;
-	ofstream of("out.svg");
-	
-	// doc.Add(svg::Rect().SetTL({0,0})
-	// 	.SetBR({200, 200})
-	// 	.SetRound(1)
-	// 	.SetFillColor(svg::Rgb{45, 15, 35})
-	// 	.SetStrokeColor(svg::Rgb{15, 55, 35}));
 	doc.Add(svg::Rect()
-			.SetFillColor(svg::Rgb{15,15,35})
-			.SetStrokeColor(svg::Rgb{15,15,35})
-			.SetTL({0, 0})
-			.SetBR({500, 300}));
-	svg::Element el1({160, 30}, "||"),
-				el2({220, 80}, "&&"),
-				el3({280, 130}, "^"),
-				el4({240, 220}, "a"),
-				el5({400, 230}, "b"),
-				el6({460, 280}, "c");
-	/*svg::Element el1({60, 30}, "||"),
-				el2({120, 80}, "&&"),
-				el3({180, 130}, "^"),
-				el4({240, 180}, "a"),
-				el5({300, 230}, "b"),
-				el6({360, 280}, "c");*/
-	/*svg::Element el1({160, 30}, "||"),
-				el2({220, 80}, "&&"),
-				el3({280, 130}, "^"),
-				el4({280, 180}, "a"),
-				el5({220, 230}, "b"),
-				el6({160, 280}, "c");*/
-				
-	svg::WireLabel wl({230, 155}, "hjk");
-	svg::Wire wr(wl.GetCenter(), {
-			el1.GetCenter(),
-			el2.GetCenter(),
-			el3.GetCenter(),
-			el4.GetCenter(),
-			el5.GetCenter(),
-			el6.GetCenter(),
-	});
-	wl.Emplace(doc);
-	el1.Emplace(doc);
-	el2.Emplace(doc);
-	el3.Emplace(doc);
-	el4.Emplace(doc);
-	el5.Emplace(doc);
-	el6.Emplace(doc);
-	wr.Emplace(doc);
+	.SetFillColor(svg::Rgb{15,15,35})
+	.SetStrokeColor(svg::Rgb{15,15,35})
+		.SetTL({0, 0})
+		.SetBR({600, 1600}));
 	
-	doc.Render(of);
+	for (auto& el : in_wirelabels) {
+		el.Emplace(doc);
+	}
 
-	return -1;
-	
+	for (auto& el : z_wirelabels) {
+		el.Emplace(doc);
+	}
+	for (auto& el : z_els) {
+		el.Emplace(doc);
+	}
+	for (auto& el : z_wires) {
+		el.Emplace(doc);
+	}
+
+	ofstream of("z_outs.svg");
+	doc.Render(of);
+}
+
+void TestPrimitives();
+int main(int argc, char** argv) {
+	//TestPrimitives();
+	//return -1;
 	if (argc < 2) {
         	return -1;
 	}
 	ReadFile(argv[1]);
-	Solve();
+	Draw();
 }
