@@ -106,6 +106,10 @@ struct Topology {
 
     bool Swap(string left, string right) {
         swap(exprs[left], exprs[right]);
+        if (left[0] == 'y' || right[0] == 'y')
+            return false;
+        if (left[0] == 'x' || right[0] == 'x')
+            return false;
         //for (auto& [start, expr] : exprs ) {
         for (auto& start : vector{left, right} ) {
             auto& expr = exprs[start];

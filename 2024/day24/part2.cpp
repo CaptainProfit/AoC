@@ -163,6 +163,28 @@ void MonkeyThinks(set<string>& susps, int line) {
 			scheme.Swap(key1, key2);
 		}
 	}
+	else {
+		for (auto it1 = susps.begin(); it1 != susps.end(); it1++) {
+			auto it2 = it1;
+			key1 = *it1;
+			it2++;
+			for (; it2 != susps.end(); it2++) {
+				string key2 = *it2;
+				if (scheme.Swap(key1, key2) ) {
+					int result = CheckLine(line);
+					if (line > 0)
+						result &= CheckLine(line - 1);
+					if (result == 3) {
+						cout << "  swap " << key1 << " <-> " << key2 << endl;
+						swaps.insert({key1, key2});
+						suc++;
+					}
+					noncyclick++;
+				}
+				scheme.Swap(key1, key2);
+			}
+		}
+	}
 	cout << "  total " << suc << " ideas among noncyclic " << noncyclick << endl;
 	if (swaps.size() == 1) {
 		scheme.Swap(swaps.begin()->first, swaps.begin()->second);
@@ -170,6 +192,8 @@ void MonkeyThinks(set<string>& susps, int line) {
 }
 
 void Solve () {
+	assert(scheme.Swap("x03"s, "bcm"s) == 0);
+	assert(scheme.Swap("x03"s, "bcm"s) == 0);
 	assert(scheme.Swap("z13"s, "dbv"s) == 0);
 	assert(scheme.Swap("z13"s, "dbv"s) == 1);
 	//scheme.Swap("z06"s, "jmq"s);
@@ -178,7 +202,7 @@ void Solve () {
 	//scheme.Swap("z38"s, "qrh"s);
 	scheme.SetZeros();
 
-	for (int i = 43; i >= 0; i--) {
+	for (int i = 25; i >= 0; i--) {
 		int result = CheckLine(i);
 		if ( result != 3) {
 			cout << "bit " << i << " Err";

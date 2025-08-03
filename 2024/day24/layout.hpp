@@ -23,7 +23,7 @@ class Layout {
     public:
     static const int dx = 60;
     static const int dy = 50;
-    static const int max_layer = 5;
+    static const int max_layer = 4;
     const int depth = 50;
     bool SetEntityLayer(int layer, string label) {
         if (layered_labels.count(label) > 0) 
