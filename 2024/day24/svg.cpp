@@ -70,8 +70,8 @@ Point operator-(Point lhs, const Point& rhs) {
 
 void Object::Render(const RenderContext& context) const {
     context.RenderIndent();
-
     // Делегируем вывод тега своим подклассам
+
     RenderObject(context);
     
 
@@ -285,7 +285,7 @@ void Text::RenderObject(const RenderContext& context) const {
 
 void Document::Render(ostream& out) const {
     out << "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>"sv << endl;
-    out << "<svg width=\"5000\" height=\"3000\" style=\"background: rgb(15,15,35)\" xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"sv << endl;
+    out << "<svg width=\"1200\" height=\"1500\" style=\"background: rgb(15,15,35)\" xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"sv << endl;
     RenderContext ctx(out, 2, 2);
     for (auto& object: objects_) {
         object->Render(ctx);

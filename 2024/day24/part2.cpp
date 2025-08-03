@@ -85,18 +85,20 @@ void Layout::Draw(svg::Document& doc) {
 	unordered_map<string, svg::Element> elems;
 	unordered_multimap<string, svg::Wire> wires;
 
-	for (auto& [label, center] : entities) {
+	for (auto& label : allocated_labels) {
 
-		labels.emplace(label, svg::WireLabel{center + svg::Point{dx, 0}, label});
+		labels.emplace(label, svg::WireLabel{entities[label] + svg::Point{dx, 0}, label});
 		if (scheme.exprs[label].op != "=") {
-			elems.emplace(label, svg::Element{center, scheme.exprs[label].op});
+			elems.emplace(label, svg::Element{entities[label], scheme.exprs[label].op});
 			wires.emplace(label, svg::Wire{elems[label], vector{labels[label]}});
 		}
 	}
-	for (auto& [label, center] : entities) {
+	for (auto& label : allocated_labels) {
 		vector<svg::Element> nexts;
 		for (auto& next : scheme.expansions[label]) {
-			nexts.push_back(elems[next]);
+			if (elems.count(next) > 0) {
+				nexts.push_back(elems[next]);
+			}
 		}
 		wires.emplace(label, svg::Wire{labels[label], nexts});
 	}
