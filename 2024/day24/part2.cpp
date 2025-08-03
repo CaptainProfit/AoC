@@ -78,8 +78,8 @@ void Layout::Draw(svg::Document& doc) {
 	doc.Add(svg::Rect()
 		.SetFillColor(svg::Rgb{15,15,35})
 		.SetStrokeColor(svg::Rgb{15,15,35})
-		.SetTL({0, 0})
-		.SetBR({3000, 5600}));
+		.SetTL({10, 10})
+		.SetBR({880, 6880}));
 
 	unordered_map<string, svg::WireLabel> labels;
 	unordered_map<string, svg::Element> elems;

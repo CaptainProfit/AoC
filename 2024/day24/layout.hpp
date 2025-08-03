@@ -21,7 +21,7 @@ class Layout {
     unordered_set<string> layered_labels;
 
     public:
-    static const int dx = 70;
+    static const int dx = 60;
     static const int dy = 50;
     static const int max_layer = 4;
 
@@ -113,7 +113,7 @@ class Layout {
             string label = Key('z', i);
             if (scheme.exprs.count(label) == 0)
                 break;
-            svg::Point pt{dx*(3*max_layer + 1), dy*(3*i + 2)};
+            svg::Point pt{dx*(3*max_layer + 1), dy*(3*i + 1)};
             AllocateEntity(max_layer, label, pt);
         }
     }
@@ -181,7 +181,7 @@ class Layout {
         } while (!new_values.empty());
         AllocateLayers();
     }
-    const int depth = 12;
+    const int depth = 50;
     void Layout2() {
         PlaceOutputs(depth);
         for (int i = 0; i < depth; i++) {
@@ -202,6 +202,26 @@ class Layout {
             AllocateLayers();
         }
     }
+    void SortLayer(int layer) {
+        for (int i = 0; i < depth; i++) {
+            string key = Key('x', i);
+            if (scheme.expansions.count(key) == 0) {
+                break;
+            }
+            auto it = scheme.expansions[key].begin();
+            auto it2 = it;
+            it2++;
+            if (it2 == scheme.expansions[key].end())
+                continue;
+            auto left = *it;
+            auto right = *it2;
+            if (scheme.exprs[left].op != "AND") {
+                auto tmp = entities[left];
+                entities[left] = entities[right];
+                entities[right] = tmp;
+            }
+        }
+    };
 
 public:
     Layout (Topology& scheme_) :
@@ -210,6 +230,7 @@ public:
             entities.emplace(key, svg::Point());
         }
         Layout2();
+        SortLayer(1);
     }
     void Draw(svg::Document& doc);
 };
