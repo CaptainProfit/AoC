@@ -142,7 +142,32 @@ class Layout {
                     continue;
                 if (layered_labels.count(next) == 0)
                     inputs.insert(next);
+            }        
+        return inputs;
+    }
+
+    set<string> CalculateNextLayer3() {
+        map<string, int> inputs_hist;
+        set<string> inputs;
+        for (auto& key : layered_labels )
+            for (auto& next : scheme.expansions[key]) {
+                if (layered_labels.count(next) == 0) {
+                    inputs_hist[next]++;
+                }
+                if (layered_labels.count(scheme.exprs[next].left) == 0)
+                    continue;
+                if (layered_labels.count(scheme.exprs[next].right) == 0)
+                    continue;
+                if (next == "none" || next == "var") 
+                    continue;
+                if (layered_labels.count(next) == 0) {
+                    inputs.insert(next);
+                }
             }
+        for (auto& k : inputs_hist) {
+            if ()
+            cout << k.first << " " << k.second << endl;
+        }
         return inputs;
     }
 
@@ -152,7 +177,7 @@ class Layout {
         int i = 0;
         do {
             i++;
-            new_values = CalculateNextLayer2();
+            new_values = CalculateNextLayer3();
             for (auto& label : new_values) {
                 if (layered_labels.count(label)) {
                     continue;
