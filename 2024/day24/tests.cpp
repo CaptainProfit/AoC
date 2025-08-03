@@ -1,6 +1,6 @@
 
 #include <fstream>
-#include "primitives.h"
+#include "primitives.hpp"
 using namespace std;
 
 void Test(string fname, set<svg::Element>& els) {

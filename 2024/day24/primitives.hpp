@@ -1,10 +1,11 @@
 #pragma once
-#include "svg.h"
+#include "svg.hpp"
 #include <vector>
 #include <map>
 #include <set>
 #include <string>
 #include  <type_traits>
+#include  <cassert>
 
 namespace svg {
 class Base {
@@ -29,6 +30,7 @@ public:
 	}
 	WireLabel() {
 		std::cerr << "WireLabel() why im here?" << std::endl;
+		assert(0);
 	}
 	
 	void Emplace(ObjectContainer& cont) const override {
@@ -57,6 +59,7 @@ public:
 	}
 	Element() {
 		std::cerr << "Element() why im here?" << std::endl;
+		assert(0);
 	}
 	
 	void Emplace(ObjectContainer& cont) const override {

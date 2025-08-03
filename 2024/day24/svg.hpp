@@ -48,6 +48,11 @@ struct Point {
     }
     double x = 0;
     double y = 0;
+    Point& operator+=(const Point& rhs) {
+        this->x += rhs.x;
+        this->y += rhs.y;
+        return *this;
+    }
 };
 
 bool operator<(const Point& lhs, const Point& rhs);
