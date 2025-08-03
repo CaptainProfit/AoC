@@ -285,7 +285,11 @@ void Text::RenderObject(const RenderContext& context) const {
 
 void Document::Render(ostream& out) const {
     out << "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>"sv << endl;
-    out << "<svg width=\"900\" height=\"6900\" style=\"background: rgb(30,30,70)\" xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"sv << endl;
+    // 5-7
+    //out << "<svg width=\"1100\" height=\"3900\" style=\"background: rgb(30,30,70)\" xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"sv << endl;
+    
+    //full
+    out << "<svg width=\"1100\" height=\"6900\" style=\"background: rgb(30,30,70)\" xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"sv << endl;
     RenderContext ctx(out, 2, 2);
     for (auto& object: objects_) {
         object->Render(ctx);

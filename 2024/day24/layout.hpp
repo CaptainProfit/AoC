@@ -23,8 +23,8 @@ class Layout {
     public:
     static const int dx = 60;
     static const int dy = 50;
-    static const int max_layer = 4;
-
+    static const int max_layer = 5;
+    const int depth = 50;
     bool SetEntityLayer(int layer, string label) {
         if (layered_labels.count(label) > 0) 
             return false;
@@ -181,7 +181,7 @@ class Layout {
         } while (!new_values.empty());
         AllocateLayers();
     }
-    const int depth = 50;
+    
     void Layout2() {
         PlaceOutputs(depth);
         for (int i = 0; i < depth; i++) {
@@ -202,6 +202,7 @@ class Layout {
             AllocateLayers();
         }
     }
+
     void SortLayer(int layer) {
         for (int i = 0; i < depth; i++) {
             string key = Key('x', i);
@@ -215,11 +216,31 @@ class Layout {
                 continue;
             auto left = *it;
             auto right = *it2;
+            if (left[0] == 'z' || right[0] == 'z') {
+                continue;
+            }
             if (scheme.exprs[left].op != "AND") {
                 auto tmp = entities[left];
                 entities[left] = entities[right];
                 entities[right] = tmp;
             }
+        }
+    };
+
+    void AlignLayer(int layer, set<string> filter) {
+        map<int, string> labels;
+        for (auto& [label, ppt] : layers[layer]) {
+            if (scheme.exprs[label].op == "") {
+                assert(0);
+            }
+            if (filter.count(label) == 0)
+                labels[ppt->y] = label;
+            
+        }
+        int i = 1;
+        for (auto it = labels.begin(); it != labels.end(); it++) {
+            entities[it->second].y = 3*i*dy + 30;
+            i++;
         }
     };
 
@@ -229,8 +250,11 @@ public:
         for (auto &[key, _] : scheme.exprs) {
             entities.emplace(key, svg::Point());
         }
+        auto& x = entities["z06"];
         Layout2();
         SortLayer(1);
+        AlignLayer(2, set{"gmh"s, "jmq"s});
+        //AligntLayer(2);
     }
     void Draw(svg::Document& doc);
 };
